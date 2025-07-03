@@ -63,21 +63,70 @@ export function createMCPServer(): Server {
           },
         },
         {
-          name: 'new_ws',
-          description: 'Launch a new workstream command in iTerm2',
+          name: 'pr_violations',
+          description: 'Analyze PR violations, open threads, CI failures, and merge conflicts',
           inputSchema: {
             type: 'object',
             properties: {
-              command: {
+              pr_url: {
                 type: 'string',
-                description: 'The workstream command to execute (e.g., "pr_violations <URL>", "code_review <URL>", "morning_workflow")',
+                description: 'GitHub PR URL to analyze',
               },
               description: {
                 type: 'string',
-                description: 'Optional description of the workstream task',
+                description: 'Optional description of the analysis task',
               },
             },
-            required: ['command'],
+            required: ['pr_url'],
+          },
+        },
+        {
+          name: 'code_review',
+          description: 'Perform comprehensive code quality review of a PR',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pr_url: {
+                type: 'string',
+                description: 'GitHub PR URL to review',
+              },
+              description: {
+                type: 'string',
+                description: 'Optional description of the review focus',
+              },
+            },
+            required: ['pr_url'],
+          },
+        },
+        {
+          name: 'morning_workflow',
+          description: 'Execute daily morning workflow automation',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              description: {
+                type: 'string',
+                description: 'Optional description of workflow customization',
+              },
+            },
+          },
+        },
+        {
+          name: 'deploy_approval',
+          description: 'Generate deployment approval message for Slack',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pr_url: {
+                type: 'string',
+                description: 'GitHub PR URL for deployment',
+              },
+              description: {
+                type: 'string',
+                description: 'Optional deployment description',
+              },
+            },
+            required: ['pr_url'],
           },
         },
       ],
@@ -124,14 +173,50 @@ export function createMCPServer(): Server {
             ],
           };
 
-        case 'new_ws':
-          // Execute new_ws workstream command
-          const result = await executeNewWSCommand((args as any).command, (args as any).description);
+        case 'pr_violations':
+          // Execute PR violations analysis
+          const prViolationsResult = await executePRViolationsCommand((args as any).pr_url, (args as any).description);
           return {
             content: [
               {
                 type: 'text',
-                text: result,
+                text: prViolationsResult,
+              },
+            ],
+          };
+
+        case 'code_review':
+          // Execute code review
+          const codeReviewResult = await executeCodeReviewCommand((args as any).pr_url, (args as any).description);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: codeReviewResult,
+              },
+            ],
+          };
+
+        case 'morning_workflow':
+          // Execute morning workflow
+          const morningWorkflowResult = await executeMorningWorkflowCommand((args as any).description);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: morningWorkflowResult,
+              },
+            ],
+          };
+
+        case 'deploy_approval':
+          // Execute deployment approval
+          const deployApprovalResult = await executeDeployApprovalCommand((args as any).pr_url, (args as any).description);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: deployApprovalResult,
               },
             ],
           };
@@ -152,6 +237,172 @@ export function createMCPServer(): Server {
   });
 
   return server;
+}
+
+/**
+ * Execute PR violations analysis command
+ */
+async function executePRViolationsCommand(prUrl: string, description?: string): Promise<string> {
+  const timestamp = new Date().toISOString();
+  
+  try {
+    // Execute the pr-violations-claude command
+    const { execSync } = await import('child_process');
+    const command = `pr-violations-claude "${prUrl}"`;
+    
+    const result = execSync(command, { 
+      encoding: 'utf8',
+      cwd: process.env.HOME || '/Users/dlighty',
+      env: { ...process.env, PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin` }
+    });
+    
+    return JSON.stringify({
+      status: 'success',
+      command: 'pr_violations',
+      pr_url: prUrl,
+      description: description || 'PR violations analysis',
+      timestamp: timestamp,
+      result: result,
+      message: 'PR violations analysis completed successfully'
+    }, null, 2);
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    return JSON.stringify({
+      status: 'error',
+      command: 'pr_violations',
+      pr_url: prUrl,
+      description: description,
+      timestamp: timestamp,
+      error: errorMessage,
+      message: `PR violations analysis failed: ${errorMessage}`
+    }, null, 2);
+  }
+}
+
+/**
+ * Execute code review command
+ */
+async function executeCodeReviewCommand(prUrl: string, description?: string): Promise<string> {
+  const timestamp = new Date().toISOString();
+  
+  try {
+    // Execute the code-review-claude command
+    const { execSync } = await import('child_process');
+    const command = `code-review-claude "${prUrl}"`;
+    
+    const result = execSync(command, { 
+      encoding: 'utf8',
+      cwd: process.env.HOME || '/Users/dlighty',
+      env: { ...process.env, PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin` }
+    });
+    
+    return JSON.stringify({
+      status: 'success',
+      command: 'code_review',
+      pr_url: prUrl,
+      description: description || 'Code review analysis',
+      timestamp: timestamp,
+      result: result,
+      message: 'Code review completed successfully'
+    }, null, 2);
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    return JSON.stringify({
+      status: 'error',
+      command: 'code_review',
+      pr_url: prUrl,
+      description: description,
+      timestamp: timestamp,
+      error: errorMessage,
+      message: `Code review failed: ${errorMessage}`
+    }, null, 2);
+  }
+}
+
+/**
+ * Execute morning workflow command
+ */
+async function executeMorningWorkflowCommand(description?: string): Promise<string> {
+  const timestamp = new Date().toISOString();
+  
+  try {
+    // Execute the morning-workflow-claude command
+    const { execSync } = await import('child_process');
+    const command = 'morning-workflow-claude';
+    
+    const result = execSync(command, { 
+      encoding: 'utf8',
+      cwd: process.env.HOME || '/Users/dlighty',
+      env: { ...process.env, PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin` }
+    });
+    
+    return JSON.stringify({
+      status: 'success',
+      command: 'morning_workflow',
+      description: description || 'Daily morning workflow automation',
+      timestamp: timestamp,
+      result: result,
+      message: 'Morning workflow completed successfully'
+    }, null, 2);
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    return JSON.stringify({
+      status: 'error',
+      command: 'morning_workflow',
+      description: description,
+      timestamp: timestamp,
+      error: errorMessage,
+      message: `Morning workflow failed: ${errorMessage}`
+    }, null, 2);
+  }
+}
+
+/**
+ * Execute deployment approval command
+ */
+async function executeDeployApprovalCommand(prUrl: string, description?: string): Promise<string> {
+  const timestamp = new Date().toISOString();
+  
+  try {
+    // Execute the deployment-diff-claude command
+    const { execSync } = await import('child_process');
+    const command = `deployment-diff-claude "${prUrl}"`;
+    
+    const result = execSync(command, { 
+      encoding: 'utf8',
+      cwd: process.env.HOME || '/Users/dlighty',
+      env: { ...process.env, PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin` }
+    });
+    
+    return JSON.stringify({
+      status: 'success',
+      command: 'deploy_approval',
+      pr_url: prUrl,
+      description: description || 'Deployment approval message generation',
+      timestamp: timestamp,
+      result: result,
+      message: 'Deployment approval message generated successfully'
+    }, null, 2);
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    return JSON.stringify({
+      status: 'error',
+      command: 'deploy_approval',
+      pr_url: prUrl,
+      description: description,
+      timestamp: timestamp,
+      error: errorMessage,
+      message: `Deployment approval failed: ${errorMessage}`
+    }, null, 2);
+  }
 }
 
 /**
