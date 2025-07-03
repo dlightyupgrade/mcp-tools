@@ -10,32 +10,34 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createMCPServer } from './server.js';
-import { createHTTPServer } from './http-server-simple.js';
+import { createHTTPServer } from './http-server.js';
 
-const DEFAULT_HTTP_PORT = 8000;
+const DEFAULT_HTTP_PORT = 8002;
 
 async function main() {
   const args = process.argv.slice(2);
-  const isHTTPMode = args.includes('--http') || process.env.MCP_HTTP_MODE === 'true';
+  const isStdioMode = args.includes('--stdio') || process.env.MCP_STDIO_MODE === 'true';
   const port = parseInt(process.env.PORT || DEFAULT_HTTP_PORT.toString(), 10);
 
-  if (isHTTPMode) {
-    // HTTP Transport Mode - for remote access and production
-    console.log(`🚀 Starting MCP Tools Server in HTTP mode on port ${port}`);
-    console.log(`📡 MCP endpoint: http://localhost:${port}/mcp`);
-    
-    await createHTTPServer(port);
-  } else {
-    // Stdio Transport Mode - for local development and Claude Desktop
-    console.error('🔧 Starting MCP Tools Server in stdio mode');
-    console.error('📋 Transport: stdio (local communication)');
-    console.error('🛠️  Tools: new_ws, echo, get_system_info');
+  if (isStdioMode) {
+    // Stdio Transport Mode - legacy/optional for local development
+    console.error('🔧 Starting MCP Tools Server in stdio mode (legacy)');
+    console.error('📋 Transport: stdio (local communication only)');
+    console.error('🛠️  Tools: pr_violations, code_review, morning_workflow, deploy_approval');
     
     const server = createMCPServer();
     const transport = new StdioServerTransport();
     
     await server.connect(transport);
     console.error('✅ MCP Tools Server connected via stdio');
+  } else {
+    // Streaming HTTP Transport Mode - default for containers and production
+    console.log(`🚀 Starting MCP Tools Server with Streaming HTTP transport on port ${port}`);
+    console.log(`📡 MCP endpoint: http://localhost:${port}/mcp`);
+    console.log(`🐳 Container-ready with streaming HTTP as default transport`);
+    console.log(`🛠️  Tools: pr_violations, code_review, morning_workflow, deploy_approval`);
+    
+    await createHTTPServer(port);
   }
 }
 

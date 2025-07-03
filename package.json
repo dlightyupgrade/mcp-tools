@@ -23,12 +23,13 @@
   "author": "dlighty",
   "license": "MIT",
   "dependencies": {
+    "@fastify/cors": "^11.0.1",
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "fastify": "^5.0.0",
-    "ws": "^8.18.0",
     "child_process": "*",
+    "fastify": "^5.0.0",
+    "fs": "*",
     "path": "*",
-    "fs": "*"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
