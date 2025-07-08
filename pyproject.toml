@@ -1,29 +1,13 @@
 [project]
-name = "mcp-tools"
+name = "mcp-tools-deps"
 version = "1.0.0"
-description = "FastMCP Tools Server - Development workflow tools for PR analysis, code review, and automation"
-authors = [
-    { name = "dlighty", email = "dlighty@example.com" }
-]
+description = "FastMCP Tools Server Dependencies"
 requires-python = ">=3.11"
 dependencies = [
     "fastmcp>=2.10.2",
     "httpx>=0.28.1",
     "psutil>=7.0.0",
 ]
-keywords = ["mcp", "model-context-protocol", "fastmcp", "tools", "pr-analysis", "code-review", "workflow"]
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: Developers",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12", 
-    "Programming Language :: Python :: 3.13",
-]
-
-[project.scripts]
-mcp-tools = "src.mcp_tools_server:mcp"
 
 [project.optional-dependencies]
 dev = [

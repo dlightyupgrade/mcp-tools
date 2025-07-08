@@ -14,12 +14,11 @@ RUN apt-get update && apt-get install -y \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency files
-COPY pyproject.toml uv.lock .python-version ./
-
-# Install uv and dependencies
-RUN pip install uv && \
-    uv sync --frozen
+# Install Python dependencies directly
+RUN pip install --no-cache-dir \
+    fastmcp>=2.10.2 \
+    httpx>=0.28.1 \
+    psutil>=7.0.0
 
 # Copy source code
 COPY src/ ./src/
@@ -45,4 +44,4 @@ ENV MCP_SERVER_PORT=8002
 ENV LOG_LEVEL=INFO
 
 # Start FastMCP server
-CMD ["uv", "run", "python", "src/mcp_tools_server.py"]
+CMD ["python", "src/mcp_tools_server.py"]
