@@ -85,7 +85,7 @@ curl http://localhost:8002/health
 #### 3. Add to Claude Code
 ```bash
 # Add the MCP server to your Claude Code environment with HTTP transport
-claude mcp add http://localhost:8002 --transport http --scope user
+claude mcp add http://localhost:8002 --transport http --scope user --name mcp-tools
 
 # Verify MCP server appears in Claude Code
 claude mcp list
@@ -110,7 +110,7 @@ Server runs on `http://localhost:8002` with endpoints:
 - **OAuth Discovery**: `GET /.well-known/oauth-authorization-server-mcp` - Authentication metadata
 - **MCP Protocol**: `POST /mcp` - Tool execution and streaming
 
-**Important**: When adding to Claude Code, use `--transport http --scope user` flags for HTTP-based MCP servers.
+**Important**: When adding to Claude Code, use `--transport http --scope user --name mcp-tools` flags for HTTP-based MCP servers.
 
 ## MCP Protocol Examples
 
@@ -206,8 +206,8 @@ curl http://localhost:8002/health
 # Check OAuth discovery endpoint exists
 curl http://localhost:8002/.well-known/oauth-authorization-server-mcp
 
-# Ensure correct claude mcp add command with transport and scope
-claude mcp add http://localhost:8002 --transport http --scope user
+# Ensure correct claude mcp add command with transport, scope, and name
+claude mcp add http://localhost:8002 --transport http --scope user --name mcp-tools
 
 # If authentication fails, rebuild container with latest auth fixes:
 podman build -t mcp-tools:latest . --no-cache
