@@ -20,28 +20,7 @@ RUN pip install --no-cache-dir \
     httpx>=0.28.1 \
     psutil>=7.0.0
 
-# AUTHENTICATION FIX: Patch FastMCP OAuth client to prevent browser opening
-# This prevents browser windows from opening in headless environments
-RUN python -c "
-import site
-import os
-packages_dir = site.getsitepackages()
-for pkg_dir in packages_dir:
-    oauth_file = os.path.join(pkg_dir, 'fastmcp', 'client', 'auth', 'oauth.py')
-    if os.path.exists(oauth_file):
-        with open(oauth_file, 'r') as f:
-            content = f.read()
-        patched_content = content.replace(
-            'webbrowser.open(authorization_url)',
-            '# PATCHED: Disable browser opening in containers\\n        pass  # webbrowser.open(authorization_url)'
-        )
-        with open(oauth_file, 'w') as f:
-            f.write(patched_content)
-        print(f'Patched FastMCP OAuth client: {oauth_file}')
-        break
-else:
-    print('FastMCP OAuth client not found - no patching needed')
-"
+# Skip OAuth patching for now - FastMCP handles headless environments
 
 # Copy source code
 COPY src/ ./src/

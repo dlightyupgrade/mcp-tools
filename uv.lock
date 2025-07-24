@@ -369,7 +369,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp-template-server"
+name = "mcp-tools"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [
@@ -393,6 +393,13 @@ test = [
     { name = "pytest-httpx" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "fastmcp" },
+    { name = "httpx" },
+    { name = "psutil" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
@@ -409,6 +416,13 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
 ]
 provides-extras = ["dev", "test"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "fastmcp", specifier = ">=2.10.2" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "psutil", specifier = ">=7.0.0" },
+]
 
 [[package]]
 name = "mdurl"

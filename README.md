@@ -1,13 +1,13 @@
 # MCP Tools Server
 
-A production-ready Model Context Protocol (MCP) server built with FastMCP Python framework, featuring HTTP Streaming transport and comprehensive development workflow tools for PR analysis, code review, morning workflow automation, and deployment approvals.
+A production-ready Model Context Protocol (MCP) server built with FastMCP Python framework, featuring HTTP Streaming transport and development workflow tools for PR analysis and code review.
 
 ## Features
 
 - **🚀 FastMCP Framework**: Modern Python MCP server with auto-generated schemas
 - **📡 HTTP Streaming Transport**: MCP 2025-03-26 specification compliant
 - **🐳 Container Ready**: Podman/Docker support with health checks
-- **⚡ Development Tools**: PR violations, code review, morning workflow, deploy approval
+- **⚡ Development Tools**: PR violations and code review analysis
 - **🔧 Hybrid Architecture**: Bash data extraction + AI-powered analysis
 - **📊 External Context**: Configurable context files for domain-specific analysis
 
@@ -23,22 +23,7 @@ Perform comprehensive code quality review of pull requests.
 - **Input**: GitHub PR URL, optional review focus description
 - **Output**: Quality assessment with severity-prioritized findings
 
-### 3. Morning Workflow (`morning_workflow`)
-Execute daily morning workflow automation with parallel subagent orchestration.
-- **Input**: Optional workflow customization description
-- **Output**: Todo import, PR analysis, master updates, thread resolution
-
-### 4. Deploy Approval (`deploy_approval`)
-Generate deployment approval messages for Slack team coordination.
-- **Input**: GitHub PR URL, optional deployment description  
-- **Output**: Formatted Slack message with author approvals
-
-### 5. New Workstream (`new_ws`)
-Launch workstream commands in iTerm2 for multi-Claude coordination.
-- **Input**: Command to execute, optional description
-- **Output**: Workstream launch status and iTerm2 pane creation
-
-### 6. System Tools
+### 3. System Tools
 - **echo**: Simple echo for testing MCP connectivity
 - **get_system_info**: System information and server diagnostics
 
@@ -135,10 +120,7 @@ curl -X POST http://localhost:8002/mcp \
 ### Tool Integration
 Each tool leverages proven CLI scripts:
 - `pr-violations-claude`: Comprehensive PR violation analysis
-- `code-review-claude`: Quality assessment automation  
-- `morning-workflow-claude`: Multi-subagent workflow orchestration
-- `deployment-diff-claude`: Slack message generation
-- `wclds`: iTerm2 workstream coordination
+- `code-review-claude`: Quality assessment automation
 
 ## Configuration
 
@@ -152,14 +134,11 @@ Each tool leverages proven CLI scripts:
 Configure paths to external scripts via environment variables:
 - `PR_VIOLATIONS_SCRIPT`: Path to pr-violations-claude script
 - `CODE_REVIEW_SCRIPT`: Path to code-review-claude script
-- `MORNING_WORKFLOW_SCRIPT`: Path to morning-workflow-claude script
-- `DEPLOY_APPROVAL_SCRIPT`: Path to deployment-diff-claude script
-- `NEW_WS_SCRIPT`: Path to wclds script
 
 ### External Dependencies
 - **GitHub CLI** (`gh`) for API access
 - **jq** for JSON processing
-- **External tool scripts** in PATH or configured paths
+- **pr-violations-claude** and **code-review-claude** scripts in PATH
 - **uv** for Python dependency management
 
 ## Health Monitoring
