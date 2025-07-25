@@ -11,7 +11,7 @@ A production-ready Model Context Protocol (MCP) server built with FastMCP Python
 - **🔐 Shell Authentication**: OAuth-compatible authentication for headless/containerized environments
 - **📊 External Context**: Configurable context files for domain-specific analysis patterns
 
-## Tools Available (4 Core Tools)
+## Tools Available (6 Core Tools)
 
 ### 1. PR Violations (`pr_violations`)
 **Architecture**: Instruction-based orchestration (does NOT execute GitHub commands directly)
@@ -33,7 +33,32 @@ Performs comprehensive code quality review by returning structured instructions 
 - **Context**: Loads external CODE-REVIEW-CONTEXT.md for quality assessment patterns
 - **Analysis**: Violations, code quality, tests, security, business logic, JIRA compliance
 
-### 3. System Tools
+### 3. JIRA Transition (`jira_transition`)
+**Architecture**: Instruction-based orchestration with embedded workflow knowledge
+
+Provides JIRA ticket workflow transitions with comprehensive automation instructions for Claude Code to execute.
+
+- **Input**: JIRA ticket ID, target state (supports aliases like "dev", "review", "qa", "done"), optional description, current status
+- **Output**: Complete JIRA workflow instructions including transition commands and status validation
+- **Features**: Status alias resolution, multi-step path calculation, preset workflow shortcuts
+- **Shortcut**: Supports `jt <ticket> <state>` pattern (e.g., "jt SI-1234 start")
+- **Workflow**: Embedded complete JIRA workflow knowledge (Open → In Definition → Ready For Eng → In Development → Ready For Codereview → Ready for Validation → In Validation → Resolved)
+
+### 4. Get JIRA Transitions (`get_jira_transitions`)
+**Architecture**: Dedicated transition path calculation with preset shortcuts
+
+Calculates transition paths between JIRA statuses with intelligent multi-step routing and preset workflow patterns.
+
+- **Input**: From status, optional to status (supports preset shortcuts)
+- **Output**: Transition path details, action names, step-by-step instructions
+- **Preset Shortcuts**: 
+  - `"start"/"dev"` → Open to In Development (3-step preset)
+  - `"review"/"pr"` → In Development to Ready For Codereview (1-step preset)  
+  - `"qa"/"test"` → Ready For Codereview to Ready for Validation (1-step preset)
+  - `"done"` → In Validation to Resolved (1-step preset)
+- **Algorithm**: Multi-step path finding using BFS for complex workflow navigation
+
+### 5. System Tools
 - **echo**: Simple echo for testing MCP connectivity and basic functionality
 - **get_system_info**: System information, server diagnostics, and process monitoring
 
@@ -104,6 +129,44 @@ In Claude Code, try: "Use pr_violations tool to analyze this PR: https://github.
 In Claude Code, try: "Use code_review tool to review this PR with focus on security: https://github.com/owner/repo/pull/123"
 ```
 
+**Test JIRA Transition Tools**:
+```
+In Claude Code, try: "jt SI-1234 start"
+In Claude Code, try: "Use jira_transition tool to move SI-1234 to development"
+In Claude Code, try: "Use get_jira_transitions tool to show the path from Open to In Development"
+```
+
+**Complete Workflow Example**:
+```
+From the CLI, try: claude "jt SI-1234 start->create branch->read ticket->create a plan to implement ticket spec"
+```
+This demonstrates the power of MCP integration - seamlessly combining JIRA workflow automation with development planning in a single command.
+
+## Complete Development Workflow Examples
+
+### JIRA to Implementation Workflow
+```bash
+# Start development workflow
+claude "jt SI-1234 start->create branch->read ticket->create a plan to implement ticket spec"
+
+# PR review workflow  
+claude "Use pr_violations tool to analyze https://github.com/owner/repo/pull/123->create todo list->fix violations"
+
+# Deployment workflow
+claude "Use code_review tool to review https://github.com/owner/repo/pull/456 with security focus->jt SI-1234 review->create deployment checklist"
+```
+
+### Multi-Tool Integration Patterns
+```bash
+# Complete ticket lifecycle
+claude "jt SI-8748 start->implement feature->run tests->create PR->jt SI-8748 review->merge->jt SI-8748 done"
+
+# PR analysis with JIRA updates
+claude "Use pr_violations for PR 123->fix issues->jt SI-1234 qa->validate changes"
+```
+
+These examples show how the MCP Tools server enables fluid workflows that span JIRA ticket management, code analysis, and development planning in natural language commands.
+
 Server runs on `http://localhost:8002` with endpoints:
 - **Health**: `GET /health` - Container health monitoring
 - **MCP Discovery**: `GET /mcp` - Protocol capabilities
@@ -111,53 +174,6 @@ Server runs on `http://localhost:8002` with endpoints:
 - **MCP Protocol**: `POST /mcp` - Tool execution and streaming
 
 **Important**: When adding to Claude Code, use `--transport http --scope user --name mcp-tools` flags for HTTP-based MCP servers.
-
-## MCP Protocol Examples
-
-### List Available Tools
-```bash
-curl -X POST http://localhost:8002/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/list"
-  }'
-```
-
-### Call PR Violations Tool
-```bash
-curl -X POST http://localhost:8002/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0", 
-    "id": 2,
-    "method": "tools/call",
-    "params": {
-      "name": "pr_violations",
-      "arguments": {
-        "pr_url": "https://github.com/owner/repo/pull/123"
-      }
-    }
-  }'
-```
-
-### Test Echo Tool
-```bash
-curl -X POST http://localhost:8002/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "tools/call",
-    "params": {
-      "name": "echo",
-      "arguments": {
-        "text": "Hello FastMCP!"
-      }
-    }
-  }'
-```
 
 ## Architecture
 
@@ -230,6 +246,9 @@ podman run --restart=always -p 8002:8002 -d --name mcp-tools mcp-tools:latest
 **Problem**: Tools return "invalid GitHub PR URL" errors
 **Solution**: Ensure PR URLs are in exact format: `https://github.com/owner/repo/pull/number`
 
+**Problem**: JIRA tools return workflow errors  
+**Solution**: Verify ticket ID format (e.g., "SI-1234") and use supported status aliases
+
 **Problem**: Tools don't return expected analysis instructions
 **Solution**: Check that external context files exist:
 - `/Users/dlighty/code/llm-context/PR-VIOLATIONS-CONTEXT.md`
@@ -249,39 +268,24 @@ podman run --restart=always -p 8002:8002 -d --name mcp-tools mcp-tools:latest
 
 ### Development Testing
 
-#### Test Individual Tools via Direct API
-```bash
-# Test pr_violations tool
-curl -X POST http://localhost:8002/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/call",
-    "params": {
-      "name": "pr_violations",
-      "arguments": {
-        "pr_url": "https://github.com/owner/repo/pull/123",
-        "description": "Test analysis"
-      }
-    }
-  }'
+#### Test Tools via Claude Code Integration
+Once the MCP server is added to Claude Code, test the tools with natural language:
 
-# Test code_review tool  
-curl -X POST http://localhost:8002/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 2,
-    "method": "tools/call",
-    "params": {
-      "name": "code_review",
-      "arguments": {
-        "pr_url": "https://github.com/owner/repo/pull/123",
-        "focus": "security"
-      }
-    }
-  }'
+```
+# Test PR analysis tools
+"Use pr_violations tool to analyze this PR: https://github.com/owner/repo/pull/123"
+"Use code_review tool to review this PR with focus on security: https://github.com/owner/repo/pull/456"
+
+# Test JIRA workflow tools
+"jt SI-1234 start"
+"jt SI-8748 review" 
+"Use jira_transition tool to move SI-1234 to development"
+"Use get_jira_transitions tool to show the path from Open to In Development"
+"Use get_jira_transitions with the 'start' preset"
+
+# Test system tools
+"Use echo tool to test MCP connectivity"
+"Use get_system_info tool to check server status"
 ```
 
 ## Configuration
@@ -307,9 +311,7 @@ For deployment and testing:
 ## Health Monitoring
 
 ### Health Check Endpoint
-```bash
-curl http://localhost:8002/health
-```
+The server provides a health check endpoint at `http://localhost:8002/health`.
 
 Response includes:
 - Service status and version
@@ -353,7 +355,7 @@ podman build -t mcp-tools .
 podman run --rm -p 8002:8002 mcp-tools
 
 # Check health
-curl http://localhost:8002/health
+podman logs mcp-tools
 ```
 
 ### Adding New Tools
