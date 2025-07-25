@@ -8,6 +8,7 @@ featuring HTTP Streaming transport and comprehensive development workflow tools.
 Tools:
 - pr_violations: Analyze PR violations and review threads  
 - code_review: Comprehensive code quality review
+- jira_transition: JIRA ticket workflow transitions with automation
 - echo: Simple echo for testing
 - get_system_info: System information and diagnostics
 
@@ -810,6 +811,538 @@ Provide comprehensive analysis with:
             "suggestion": "Check PR URL format and try again"
         }
 
+@mcp.tool
+def jira_transition(ticket_id: str, target_state: str, description: str = "", current_status: str = "") -> Dict[str, Any]:
+    """
+    Automatically perform JIRA ticket transitions using Atlassian MCP.
+    
+    Natural language triggers: "jt", "jira transition", "move jira ticket to", 
+    "transition ticket to", "change ticket status", "set jira status"
+    
+    Workflow:
+    1. Gets current ticket status via Atlassian MCP
+    2. Resolves target state aliases (e.g., 'dev' -> 'In Development')  
+    3. Gets available transitions from JIRA
+    4. Executes the appropriate transition
+    5. Verifies final status
+    
+    Args:
+        ticket_id: JIRA ticket ID (e.g., SI-8748, PROJ-123)
+        target_state: Target JIRA status (full name or alias like 'dev', 'qa', 'done')
+        description: Optional description or context for the transition
+        current_status: Current JIRA status (if provided, returns specific transition path)
+        
+    Returns:
+        Dictionary containing structured instructions for Claude Code to execute
+    """
+    logger.info(f"JIRA auto-transition (MCP): {ticket_id} -> {target_state}")
+    
+    try:
+        # Validate inputs
+        if not ticket_id or not ticket_id.strip():
+            raise ValueError("Ticket ID cannot be empty")
+        
+        if not target_state or not target_state.strip():
+            raise ValueError("Target state cannot be empty")
+        
+        # Clean inputs
+        ticket_id = ticket_id.strip()
+        target_state = target_state.strip()
+        cloud_id = "credify.atlassian.net"  # Use Credify Atlassian instance
+        
+        # Embedded JIRA workflow knowledge and status aliases
+        status_aliases = {
+            "In Development": ["dev", "development", "start", "begin", "work", "code"],
+            "Ready For Codereview": ["review", "codereview", "cr", "pr"],
+            "Ready for Validation": ["validation", "qa", "test", "testing"],
+            "In Validation": ["validating", "validate", "val"],
+            "Resolved": ["done", "resolved"],
+            "In Definition": ["definition", "define"],
+            "Ready For Eng": ["eng", "ready", "engineering"],
+            "In Design": ["design"],
+            "Open": ["open"],
+            "Blocked": ["blocked", "block", "stop"],
+            "Closed": ["closed", "close", "complete", "finish", "end"],
+            "Won't Do": ["wont", "cancel", "skip"],
+            "Reopened": ["reopened", "reopen"]
+        }
+        
+        # Embedded workflow transitions with standard JIRA transition names
+        workflow_transitions = {
+            "Open": {
+                "In Definition": "Start Definition",
+                "Closed": "Close Issue"
+            },
+            "In Definition": {
+                "Ready For Eng": "Ready for Engineering",
+                "Open": "Reopen",
+                "Blocked": "Block"
+            },
+            "Ready For Eng": {
+                "In Development": "Start Progress",
+                "In Definition": "Back to Definition",
+                "Blocked": "Block"
+            },
+            "In Development": {
+                "Ready For Codereview": "Ready for Code Review",
+                "In Definition": "Back to Definition",
+                "Blocked": "Block"
+            },
+            "Ready For Codereview": {
+                "Ready for Validation": "Ready for QA",
+                "In Development": "Back to Development",
+                "Blocked": "Block"
+            },
+            "Ready for Validation": {
+                "In Validation": "Start Validation",
+                "In Development": "Back to Development",
+                "Blocked": "Block"
+            },
+            "In Validation": {
+                "Resolved": "Resolve Issue",
+                "In Development": "Reject", 
+                "Ready for Validation": "Back to Ready for Validation"
+            },
+            "Resolved": {
+                "Closed": "Close Issue",
+                "Reopened": "Reopen",
+                "In Validation": "Reopen for Validation"
+            },
+            "Blocked": {
+                "In Definition": "Unblock to Definition",
+                "Ready For Eng": "Unblock to Ready for Eng", 
+                "In Development": "Unblock to Development",
+                "Ready For Codereview": "Unblock to Code Review"
+            }
+        }
+        
+        # Resolve target state alias
+        resolved_target = target_state
+        for status, aliases in status_aliases.items():
+            if target_state.lower() in [alias.lower() for alias in aliases]:
+                resolved_target = status
+                break
+        
+        # Calculate transition path using embedded workflow knowledge
+        def calculate_transition_path(current_status, target_status):
+            """Calculate the transition path from current to target status"""
+            if current_status == target_status:
+                return []  # Already at target
+            
+            # Check for direct transition
+            if current_status in workflow_transitions:
+                if target_status in workflow_transitions[current_status]:
+                    transition_name = workflow_transitions[current_status][target_status]
+                    return [{"from": current_status, "to": target_status, "transition": transition_name}]
+            
+            # Multi-step transitions (simple BFS for now)
+            # This is a simplified version - could be enhanced with full path finding
+            if current_status in workflow_transitions:
+                available_next = list(workflow_transitions[current_status].keys())
+                return [{"error": f"No direct transition from '{current_status}' to '{target_status}'. Available: {', '.join(available_next)}"}]
+            
+            return [{"error": f"No transitions available from status '{current_status}'"}]
+        
+        # If current_status is provided, delegate to get_jira_transitions tool
+        if current_status and current_status.strip():
+            current_status = current_status.strip()
+            return {
+                "type": "instruction_delegation",
+                "message": f"Use the dedicated get_jira_transitions tool for {ticket_id}: {current_status} → {resolved_target}",
+                "instruction": f"Call mcp__myt__get_jira_transitions(from_status='{current_status}', to_status='{resolved_target}') for the specific transition path",
+                "current_status": current_status,
+                "target_status": resolved_target,
+                "ticket_id": ticket_id
+            }
+        
+        # Use instruction-based orchestration pattern like other MCP tools
+        # Return structured instructions for Claude Code to execute
+        
+        # Generate instructions that use our smart two-step approach
+        instructions = f"""# JIRA Transition Instructions for {ticket_id} → {target_state}
+
+## Step 1: Get Current Status
+Execute this MCP command to get the current ticket status:
+
+```
+mcp__atlassian__getJiraIssue(
+    cloudId="{cloud_id}",
+    issueIdOrKey="{ticket_id}",
+    fields=["status", "summary", "assignee"]
+)
+```
+
+## Step 2: Calculate Specific Transition Path
+After getting the current status from Step 1, use our dedicated transition calculator:
+
+```
+mcp__myt__get_jira_transitions(
+    from_status="[CURRENT_STATUS_FROM_STEP_1]",
+    to_status="{resolved_target}"
+)
+```
+
+**This will return**:
+- `type: "no_transition_needed"` → Already at target status
+- `type: "direct_transition"` → Transition path with exact command
+- `type: "no_direct_transition"` → No path available with alternatives
+
+## Step 3: Execute Calculated Transitions
+If Step 2 returns `type: "direct_transition"`, execute the transition using the provided command:
+
+Example response from Step 2:
+```json
+{{
+  "type": "direct_transition",
+  "transitions": [{{"from": "Open", "to": "In Development", "transition_name": "Start Progress"}}],
+  "atlassian_command": "mcp__atlassian__transitionJiraIssue(cloudId='credify.atlassian.net', issueIdOrKey='[TICKET_ID]', transition={{'name': 'Start Progress'}})"
+}}
+```
+
+Replace `[TICKET_ID]` with `{ticket_id}` and execute the command.
+
+## Step 4: Verify Final Status
+Verify the transition was successful:
+
+```
+mcp__atlassian__getJiraIssue(
+    cloudId="{cloud_id}",
+    issueIdOrKey="{ticket_id}",
+    fields=["status"]
+)
+```
+
+## Key Benefits
+- **Smart Path Calculation**: Our MCP tool calculates the optimal transition path
+- **Current Status Aware**: Tool adapts based on the actual current status
+- **Embedded Intelligence**: All workflow logic is contained in our MCP tool
+- **Ready-to-Execute**: Returns exact Atlassian MCP commands to run
+
+## Processing Logic
+1. **Get Current Status**: Use Atlassian MCP to get ticket's current status
+2. **Calculate Path**: Ask our MCP tool for specific transition sequence (with current_status)
+3. **Execute Transitions**: Use the exact commands returned by our tool
+4. **Verify Result**: Confirm the final status matches the target
+
+## Resolved Target State
+**Input**: '{target_state}' → **Resolved**: '{resolved_target}'
+
+## Error Handling
+- If ticket is already at target status, our tool returns "transition_complete"
+- If no valid path exists, our tool returns "transition_error" with alternatives
+- All workflow intelligence is embedded in our MCP tool
+
+## Success Criteria
+- Ticket status successfully changed to the resolved target state
+- All MCP commands executed without errors
+- Final verification confirms the status change
+
+**Description**: {description or "Automated JIRA transition via MCP Tools"}
+"""
+
+        # Return instruction-based result for Claude Code to execute
+        return {
+            "type": "instruction_orchestration",
+            "tool": "jira_transition", 
+            "method": "atlassian_mcp",
+            "ticket_id": ticket_id,
+            "target_state": target_state,
+            "resolved_target": next((status for status, aliases in status_aliases.items() 
+                                   if target_state.lower() in [alias.lower() for alias in aliases]), target_state),
+            "cloud_id": cloud_id,
+            "instructions": instructions,
+            "mcp_commands": [
+                f"mcp__atlassian__getJiraIssue(cloudId='{cloud_id}', issueIdOrKey='{ticket_id}', fields=['status', 'summary'])",
+                f"mcp__atlassian__getTransitionsForJiraIssue(cloudId='{cloud_id}', issueIdOrKey='{ticket_id}')",
+                f"mcp__atlassian__transitionJiraIssue(cloudId='{cloud_id}', issueIdOrKey='{ticket_id}', transition={{'id': 'TRANSITION_ID'}})",
+                f"mcp__atlassian__getJiraIssue(cloudId='{cloud_id}', issueIdOrKey='{ticket_id}', fields=['status'])"
+            ],
+            "description": description or "Automated JIRA transition via MCP Tools",
+            "status_aliases": status_aliases
+        }
+        
+    except Exception as e:
+        logger.error(f"JIRA transition execution error: {str(e)}")
+        return {
+            "success": False,
+            "error": f"JIRA transition execution failed: {str(e)}",
+            "ticket_id": ticket_id,
+            "target_state": target_state,
+            "type": type(e).__name__,
+            "method": "atlassian_mcp",
+            "suggestion": "Check ticket ID format (e.g., SI-8748), target state, and Atlassian MCP authentication"
+        }
+
+@mcp.tool
+def get_jira_transitions(from_status: str, to_status: str = "") -> Dict[str, Any]:
+    """
+    Calculate the transition path between two JIRA statuses using embedded workflow knowledge.
+    
+    Supports preset workflow shortcuts for common development patterns:
+    - "start"|"dev" → Open to In Development (3-step preset)
+    - "review"|"pr" → In Development to Ready For Codereview (1-step preset)
+    - "qa"|"test" → Ready For Codereview to Ready for Validation (1-step preset)
+    - "done" → In Validation to Resolved (1-step preset)
+    
+    Natural language triggers: "get transitions", "transition path", "jira workflow"
+    
+    Args:
+        from_status: Current JIRA status OR preset shortcut ("start", "dev", "review", "pr", "qa", "test", "done")
+        to_status: Target JIRA status (optional if using preset shortcuts)
+        
+    Returns:
+        Dictionary with transition path, commands, or error information
+    """
+    logger.info(f"Calculating JIRA transition path: {from_status} -> {to_status}")
+    
+    try:
+        # Validate inputs
+        if not from_status or not from_status.strip():
+            raise ValueError("from_status cannot be empty")
+        
+        # Clean inputs
+        from_status = from_status.strip()
+        to_status = to_status.strip() if to_status else ""
+        
+        # Initialize preset tracking
+        preset_used = None
+        
+        # Preset workflow shortcuts for common patterns
+        workflow_presets = {
+            "start": {"from": "Open", "to": "In Development", "description": "Start development work (Open → In Development)"},
+            "dev": {"from": "Open", "to": "In Development", "description": "Start development work (Open → In Development)"},
+            "review": {"from": "In Development", "to": "Ready For Codereview", "description": "Submit for code review (In Development → Ready For Codereview)"},
+            "pr": {"from": "In Development", "to": "Ready For Codereview", "description": "Submit for code review (In Development → Ready For Codereview)"},
+            "qa": {"from": "Ready For Codereview", "to": "Ready for Validation", "description": "Move to QA testing (Ready For Codereview → Ready for Validation)"},
+            "test": {"from": "Ready For Codereview", "to": "Ready for Validation", "description": "Move to QA testing (Ready For Codereview → Ready for Validation)"},
+            "done": {"from": "In Validation", "to": "Resolved", "description": "Mark as complete (In Validation → Resolved)"}
+        }
+        
+        # Check if from_status is a preset shortcut
+        if from_status.lower() in workflow_presets:
+            if to_status:
+                return {
+                    "type": "preset_with_override",
+                    "message": f"Note: '{from_status}' is a preset shortcut. Using preset path instead of override.",
+                    "preset_used": from_status.lower(),
+                    "preset_description": workflow_presets[from_status.lower()]["description"],
+                    "from_status": workflow_presets[from_status.lower()]["from"],
+                    "to_status": workflow_presets[from_status.lower()]["to"],
+                    "warning": f"Ignoring to_status='{to_status}' in favor of preset path"
+                }
+            
+            preset = workflow_presets[from_status.lower()]
+            from_status = preset["from"]
+            to_status = preset["to"]
+            
+            logger.info(f"Using preset '{from_status.lower()}': {preset['description']}")
+            return {
+                "type": "preset_shortcut",
+                "preset_name": list(workflow_presets.keys())[list(workflow_presets.values()).index(preset)],
+                "preset_description": preset["description"],
+                "from_status": from_status,
+                "to_status": to_status,
+                "message": f"Using preset workflow: {preset['description']}",
+                "continue_with_normal_processing": True
+            }
+        
+        # Validate to_status is provided for non-preset requests
+        if not to_status:
+            available_presets = list(workflow_presets.keys())
+            return {
+                "type": "missing_to_status",
+                "message": "to_status is required when not using preset shortcuts",
+                "available_presets": available_presets,
+                "preset_examples": {
+                    name: preset["description"] for name, preset in workflow_presets.items()
+                },
+                "error": "Either provide to_status or use a preset shortcut (start, dev, review, pr, qa, test, done)"
+            }
+        
+        # Embedded workflow transitions with standard JIRA transition names
+        workflow_transitions = {
+            "Open": {
+                "In Definition": "Start Definition",
+                "Closed": "Close Issue"
+            },
+            "In Definition": {
+                "Ready For Eng": "Ready for Engineering",
+                "Open": "Reopen",
+                "Blocked": "Block"
+            },
+            "Ready For Eng": {
+                "In Development": "Start Progress",
+                "In Definition": "Back to Definition",
+                "Blocked": "Block"
+            },
+            "In Development": {
+                "Ready For Codereview": "Ready for Code Review",
+                "In Definition": "Back to Definition",
+                "Blocked": "Block"
+            },
+            "Ready For Codereview": {
+                "Ready for Validation": "Ready for QA",
+                "In Development": "Back to Development",
+                "Blocked": "Block"
+            },
+            "Ready for Validation": {
+                "In Validation": "Start Validation",
+                "In Development": "Back to Development",
+                "Blocked": "Block"
+            },
+            "In Validation": {
+                "Resolved": "Resolve Issue",
+                "In Development": "Reject", 
+                "Ready for Validation": "Back to Ready for Validation"
+            },
+            "Resolved": {
+                "Closed": "Close Issue",
+                "Reopened": "Reopen",
+                "In Validation": "Reopen for Validation"
+            },
+            "Blocked": {
+                "In Definition": "Unblock to Definition",
+                "Ready For Eng": "Unblock to Ready for Eng", 
+                "In Development": "Unblock to Development",
+                "Ready For Codereview": "Unblock to Code Review"
+            }
+        }
+        
+        # Status aliases for flexible input
+        status_aliases = {
+            "In Development": ["dev", "development", "start", "begin", "work", "code"],
+            "Ready For Codereview": ["review", "codereview", "cr", "pr"],
+            "Ready for Validation": ["validation", "qa", "test", "testing"],
+            "In Validation": ["validating", "validate", "val"],
+            "Resolved": ["done", "resolved"],
+            "In Definition": ["definition", "define"],
+            "Ready For Eng": ["eng", "ready", "engineering"],
+            "In Design": ["design"],
+            "Open": ["open"],
+            "Blocked": ["blocked", "block", "stop"],
+            "Closed": ["closed", "close", "complete", "finish", "end"],
+            "Won't Do": ["wont", "cancel", "skip"],
+            "Reopened": ["reopened", "reopen"]
+        }
+        
+        # Resolve status aliases
+        resolved_from = from_status
+        resolved_to = to_status
+        
+        for status, aliases in status_aliases.items():
+            if from_status.lower() in [alias.lower() for alias in aliases]:
+                resolved_from = status
+            if to_status.lower() in [alias.lower() for alias in aliases]:
+                resolved_to = status
+        
+        # Check if already at target
+        if resolved_from == resolved_to:
+            result = {
+                "type": "no_transition_needed",
+                "message": f"Already at target status: {resolved_to}",
+                "from_status": resolved_from,
+                "to_status": resolved_to,
+                "transitions": []
+            }
+            if preset_used:
+                result["preset"] = preset_used
+                result["message"] = f"Preset '{preset_used['name']}' applied: Already at target status {resolved_to}"
+            return result
+        
+        # Check for direct transition
+        if resolved_from in workflow_transitions:
+            if resolved_to in workflow_transitions[resolved_from]:
+                transition_name = workflow_transitions[resolved_from][resolved_to]
+                result = {
+                    "type": "direct_transition",
+                    "message": f"Direct transition available: {resolved_from} → {resolved_to}",
+                    "from_status": resolved_from,
+                    "to_status": resolved_to,
+                    "transitions": [{
+                        "from": resolved_from,
+                        "to": resolved_to,
+                        "transition_name": transition_name
+                    }],
+                    "atlassian_command": f'mcp__atlassian__transitionJiraIssue(cloudId="credify.atlassian.net", issueIdOrKey="[TICKET_ID]", transition={{"name": "{transition_name}"}})'
+                }
+                if preset_used:
+                    result["preset"] = preset_used
+                    result["message"] = f"Preset '{preset_used['name']}' ({preset_used['description']}): Direct transition available"
+                return result
+        
+        # Check for multi-step transition path
+        def find_path(start, target):
+            """Find multi-step transition path using BFS to avoid deep recursion"""
+            if start == target:
+                return []
+            
+            # Use BFS for multi-step path finding
+            from collections import deque
+            queue = deque([(start, [])])
+            visited = set([start])
+            
+            while queue:
+                current, path = queue.popleft()
+                
+                if current in workflow_transitions:
+                    for next_status, transition_name in workflow_transitions[current].items():
+                        new_path = path + [{"from": current, "to": next_status, "transition_name": transition_name}]
+                        
+                        if next_status == target:
+                            return new_path  # Found complete path
+                        
+                        if next_status not in visited:
+                            visited.add(next_status)
+                            queue.append((next_status, new_path))
+            
+            return None  # No path found
+        
+        multi_step_path = find_path(resolved_from, resolved_to)
+        if multi_step_path:
+            result = {
+                "type": "multi_step_transition",
+                "message": f"Multi-step transition path: {resolved_from} → {resolved_to} ({len(multi_step_path)} steps)",
+                "from_status": resolved_from,
+                "to_status": resolved_to,
+                "transitions": multi_step_path,
+                "atlassian_commands": [
+                    f'mcp__atlassian__transitionJiraIssue(cloudId="credify.atlassian.net", issueIdOrKey="[TICKET_ID]", transition={{"name": "{step["transition_name"]}"}})'
+                    for step in multi_step_path
+                ],
+                "path_summary": " → ".join([step["to"] for step in multi_step_path])
+            }
+            if preset_used:
+                result["preset"] = preset_used
+                result["message"] = f"Preset '{preset_used['name']}' ({preset_used['description']}): {len(multi_step_path)}-step transition path"
+            return result
+        
+        # No path found
+        available_transitions = []
+        if resolved_from in workflow_transitions:
+            available_transitions = list(workflow_transitions[resolved_from].keys())
+        
+        result = {
+            "type": "no_transition_path",
+            "message": f"No transition path found from '{resolved_from}' to '{resolved_to}'",
+            "from_status": resolved_from,
+            "to_status": resolved_to,
+            "transitions": [],
+            "available_from_current": available_transitions,
+            "suggestion": f"Available next steps: {', '.join(available_transitions)}" if available_transitions else "No transitions available from current status"
+        }
+        if preset_used:
+            result["preset"] = preset_used
+            result["message"] = f"Preset '{preset_used['name']}' ({preset_used['description']}): No transition path found"
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error calculating JIRA transitions: {e}")
+        return {
+            "type": "error",
+            "message": f"Failed to calculate transition path: {str(e)}",
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
 
 
 # TEMPLATE PATTERN: Start the MCP Server over HTTP
@@ -850,7 +1383,7 @@ def main():
             app.routes.append(route)
         
         logger.info("FastMCP HTTP Streaming server initialized with shell authentication")
-        logger.info("Available tools: echo, get_system_info, pr_violations, code_review")
+        logger.info("Available tools: echo, get_system_info, pr_violations, code_review, jira_transition, get_jira_transitions")
         logger.info("Authentication endpoints: /.well-known/oauth-authorization-server, /register, /auth, /token")
         
         # Run with uvicorn

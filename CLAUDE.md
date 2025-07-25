@@ -103,8 +103,10 @@ curl -X POST http://localhost:8002/mcp \
 ### Available Tools
 1. **pr_violations**: Analyze PR violations and threads
 2. **code_review**: Comprehensive code quality review
-3. **echo**: Simple echo for testing
-4. **get_system_info**: System information
+3. **jira_transition**: JIRA ticket workflow transitions with automation
+4. **get_jira_transitions**: Calculate transition paths between JIRA statuses (supports multi-step paths + preset shortcuts: "start"/"dev", "review"/"pr", "qa"/"test", "done")
+5. **echo**: Simple echo for testing
+6. **get_system_info**: System information
 
 ## Quality Features
 - **Input Validation**: Security checks and parameter validation
