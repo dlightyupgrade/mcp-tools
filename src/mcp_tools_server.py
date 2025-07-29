@@ -401,6 +401,7 @@ Violation Summary:
                     f"Execute: gh api \"repos/{owner}/{repo}/pulls/{pr_number}/comments\" (inline comments)",
                     f"Execute: gh pr view {pr_number} --repo {owner}/{repo} --json mergeable,mergeStateStatus (merge status)",
                     "Extract JIRA ticket from PR title/body (SI-XXXX pattern)",
+                    "If JIRA ticket found, execute: mcp__atlassian__getJiraIssue(cloudId='credify.atlassian.net', issueIdOrKey='TICKET_ID', fields=['summary', 'description', 'status']) to get ticket context for violation analysis",
                     "Get code context for each thread location using GitHub Contents API"
                 ],
                 
@@ -463,6 +464,9 @@ Scaling Rules:
                     "Analyze ONLY open threads (not resolved, collapsed, or outdated)",
                     "Extract code context around each thread location (±10 lines)",
                     "Classify thread complexity: SIMPLE (explanation), MEDIUM (code analysis), HARD (architectural)",
+                    "Extract JIRA ticket ID from PR title/body using regex pattern: SI-\\d+",
+                    "If JIRA ticket found, execute Atlassian MCP command to retrieve ticket details for context",
+                    "Use JIRA ticket data (if available) to understand the intended changes and assess violations",
                     "Provide actionable solutions with specific file:line references",
                     "Generate quality confidence score (0.0-1.0) and grade (A+ to C)",
                     "Include JIRA ticket detection and compliance checking",
@@ -499,6 +503,8 @@ Scaling Rules:
                 "data_extraction": "PR details, threads, CI status, and code context successfully extracted",
                 "violation_classification": "All violations categorized by priority with actionable solutions",
                 "thread_analysis": "Open threads analyzed with complexity assessment and solutions",
+                "jira_integration": "JIRA ticket extracted from PR and Atlassian MCP called if ticket found",
+                "jira_context": "JIRA ticket data (if available) used to understand intended changes and assess violations",
                 "quality_scoring": "Confidence score and quality grade assigned based on analysis completeness",
                 "actionable_output": "Structured report with file:line references and next steps provided"
             }
@@ -641,7 +647,8 @@ Provide comprehensive analysis with:
                     f"Execute: gh api \"repos/{owner}/{repo}/pulls/{pr_number}/files\" (files changed)",
                     f"Execute: gh api \"repos/{owner}/{repo}/pulls/{pr_number}/commits\" | jq -r '.[].sha' | tail -1 | xargs -I {{}} gh api \"repos/{owner}/{repo}/commits/{{}}/check-runs\" (CI status)",
                     f"Execute: gh api \"repos/{owner}/{repo}/pulls/{pr_number}/reviews\" (existing reviews)",
-                    "Extract JIRA ticket from PR title/body (SI-XXXX pattern)"
+                    "Extract JIRA ticket from PR title/body (SI-XXXX pattern)",
+                    "If JIRA ticket found, execute: mcp__atlassian__getJiraIssue(cloudId='credify.atlassian.net', issueIdOrKey='TICKET_ID', fields=['summary', 'description', 'status', 'assignee', 'priority']) to get ticket details for compliance analysis"
                 ],
                 
                 "required_output_format": """
@@ -720,10 +727,18 @@ Provide comprehensive analysis with:
 ## 🎫 **JIRA TICKET COMPLIANCE**
 
 ### Requirements Analysis
-- **Ticket**: [SI-XXXX: Brief description]  
+- **Ticket**: [SI-XXXX: Title from Atlassian MCP or "Not found"]  
+- **JIRA Status**: [Current status from Atlassian MCP or "N/A"]  
+- **Priority**: [Priority from Atlassian MCP or "N/A"]  
+- **Assignee**: [Assignee from Atlassian MCP or "Unassigned"]  
 - **Implementation Match**: [Exact match|Over-engineered|Under-engineered]  
-- **Acceptance Criteria**: [All fulfilled|Missing: specific criteria]  
+- **Acceptance Criteria**: [All fulfilled|Missing: specific criteria from JIRA description]  
 - **Scope Appropriateness**: [Appropriate|Scope creep detected]  
+
+### JIRA Integration Details
+- **Ticket Retrieved**: [Yes|No - provide JIRA link if manual lookup needed]  
+- **Description Match**: [PR changes align with JIRA description: Yes|No|Partial]  
+- **Status Consistency**: [PR status aligns with JIRA workflow: Yes|No]  
 
 ---
 
@@ -768,10 +783,14 @@ Provide comprehensive analysis with:
                     "Use actual PR data (title, files, lines) - no placeholders",
                     "Focus on ANALYSIS ONLY - no code changes or implementations",
                     "Apply deep thinking about simplification opportunities",
-                    "Assess whether implementation matches JIRA ticket requirements",
+                    "Extract JIRA ticket ID from PR title/body using regex pattern: SI-\\d+",
+                    "If JIRA ticket found, execute Atlassian MCP command to retrieve ticket details",
+                    "Use JIRA ticket data (summary, description, status, assignee, priority) for compliance analysis",
+                    "Assess whether implementation matches JIRA ticket requirements based on retrieved data",
                     "Provide specific file:line references for all findings",
                     "Ensure all sections are completed with actual analysis",
-                    "Replace ALL bracketed placeholders with real data/analysis"
+                    "Replace ALL bracketed placeholders with real data/analysis",
+                    "Include JIRA integration status in analysis even if ticket not found"
                 ]
             },
             
@@ -795,7 +814,9 @@ Provide comprehensive analysis with:
                 "analysis_completeness": "All sections completed with thorough analysis (no placeholders remaining)",
                 "actionable_output": "Specific, thoughtful recommendations provided (analysis only, no code changes)",
                 "deep_insights": "Meaningful assessment of code simplification and standards compliance",
-                "ticket_alignment": "Thorough analysis of whether implementation matches JIRA ticket specification"
+                "jira_integration": "JIRA ticket extracted from PR and Atlassian MCP called if ticket found",
+                "jira_compliance": "JIRA ticket data (if available) used for requirements and compliance analysis",
+                "ticket_alignment": "Thorough analysis of whether implementation matches JIRA ticket specification using retrieved data"
             }
         }
         
