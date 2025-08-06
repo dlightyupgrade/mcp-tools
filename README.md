@@ -1,6 +1,17 @@
-# MCP Tools Server
+# MCP Tools Server v2.0
 
-A production-ready Model Context Protocol (MCP) server built with FastMCP Python framework, featuring HTTP Streaming transport and streamlined development workflow tools for PR analysis and code review.
+A production-ready Model Context Protocol (MCP) server built with FastMCP Python framework, featuring HTTP Streaming transport and **modular architecture** for better maintainability and extensibility.
+
+## 🚀 Version 2.0 - Modular Architecture
+
+**New in v2.0:**
+- **Modular Tool System**: Each tool is now in its own file for easier management
+- **Dynamic Registration**: Tools are automatically discovered and registered
+- **Better Separation of Concerns**: Authentication, configuration, and tools are cleanly separated
+- **Easier Testing**: Individual tools can be tested in isolation
+- **Enhanced Maintainability**: Add new tools by simply creating new files
+
+**Legacy Support:** The original monolithic v1.0 is preserved as `mcp_tools_server_v1.py` for demo/fallback purposes.
 
 ## Features
 
@@ -78,6 +89,53 @@ Calculates transition paths between JIRA statuses with intelligent multi-step ro
 3. Claude Code executes the GitHub API calls using `gh` CLI
 4. Claude Code processes results using the provided analysis format
 5. Result: Comprehensive PR violations analysis with actionable solutions
+
+## 🏗️ Modular Architecture
+
+### Directory Structure
+```
+src/
+├── mcp_tools_server.py         # Main server (v2.0 modular)
+├── mcp_tools_server_v1.py      # Legacy monolithic version
+├── tools/
+│   ├── __init__.py            # Tool registry/loader
+│   ├── base.py                # Base utilities & common patterns
+│   ├── pr_violations.py       # PR violation analysis
+│   ├── code_review.py         # Code quality review
+│   ├── jira_transition.py     # JIRA workflow transitions
+│   ├── jira_transitions.py    # JIRA transition calculations
+│   ├── system.py              # System tools (echo, get_system_info)
+│   └── context/               # External context files
+├── auth/
+│   └── oauth_shell.py         # OAuth shell authentication
+└── config/
+    └── settings.py            # Configuration management
+```
+
+### Adding New Tools
+To add a new tool in v2.0:
+
+1. **Create tool file**: `src/tools/my_new_tool.py`
+```python
+from fastmcp import FastMCP
+from .base import ToolBase
+
+def register_my_new_tool(mcp: FastMCP):
+    @mcp.tool
+    def my_new_tool(param: str) -> dict:
+        # Tool implementation
+        return ToolBase.create_success_response({"result": param})
+```
+
+2. **Register in loader**: Add to `src/tools/__init__.py`
+```python
+tool_modules = [
+    # ... existing tools ...
+    ("my_new_tool", "register_my_new_tool"),
+]
+```
+
+3. **Done!** The tool is automatically discovered and registered.
 
 ## Quick Start
 

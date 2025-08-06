@@ -4,11 +4,11 @@ This file provides guidance to Claude Code when working with the MCP Tools proje
 
 ## Project Information
 - **Name**: MCP Tools Server
-- **Version**: 1.0.0
-- **Type**: Python FastMCP Server
+- **Version**: 2.0.0
+- **Type**: Python FastMCP Server (Modular Architecture)
 - **Transport**: MCP 2025-03-26 HTTP Streaming (FastMCP)
 - **Port**: 8002 (default)
-- **Architecture**: FastMCP with hybrid scripting pattern
+- **Architecture**: Modular FastMCP with dynamic tool registration
 
 ## Container Preferences
 
@@ -92,11 +92,26 @@ curl -X POST http://localhost:8002/mcp \
   -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "echo", "arguments": {"text": "Hello MCP"}}}'
 ```
 
-## Architecture
+## Architecture v2.0 - Modular Design
 
-### Core Components
-- **src/mcp_tools_server.py**: FastMCP server implementation
+### Version Comparison
+- **mcp_tools_server.py**: v2.0 modular architecture (PRODUCTION)
+- **mcp_tools_server_v1.py**: v1.0 monolithic version (LEGACY/DEMO)
+
+### Modular Components
+- **src/mcp_tools_server.py**: Main server with dynamic tool registration
+- **src/tools/__init__.py**: Tool registry and loader
+- **src/tools/base.py**: Common utilities and base classes
+- **src/config/settings.py**: Centralized configuration
+- **src/auth/oauth_shell.py**: OAuth authentication layer
 - **pyproject.toml**: Python dependencies and configuration
+
+### Individual Tool Files
+- **src/tools/pr_violations.py**: PR violation analysis
+- **src/tools/code_review.py**: Code quality review
+- **src/tools/jira_transition.py**: JIRA workflow transitions
+- **src/tools/jira_transitions.py**: JIRA transition calculations
+- **src/tools/system.py**: System tools (echo, get_system_info)
 - **uv.lock**: Locked dependency versions
 - **Dockerfile**: Container configuration
 
