@@ -22,7 +22,7 @@ A production-ready Model Context Protocol (MCP) server built with FastMCP Python
 - **🔐 Shell Authentication**: OAuth-compatible authentication for headless/containerized environments
 - **📊 External Context**: Configurable context files for domain-specific analysis patterns
 
-## Tools Available (6 Core Tools)
+## Tools Available (7 Core Tools)
 
 ### 1. PR Violations (`pr_violations`)
 **Architecture**: Instruction-based orchestration (does NOT execute GitHub commands directly)
@@ -44,7 +44,26 @@ Performs comprehensive code quality review by returning structured instructions 
 - **Context**: Loads external CODE-REVIEW-CONTEXT.md for quality assessment patterns
 - **Analysis**: Violations, code quality, tests, security, business logic, JIRA compliance
 
-### 3. JIRA Transition (`jira_transition`)
+### 3. Tech Design Review (`tech_design_review`)
+**Architecture**: Context-aware instruction-based orchestration with comprehensive analysis framework
+
+Performs comprehensive technical design document review and improvement by returning structured instructions for Claude Code to execute.
+
+- **Input**: Confluence URL, GitHub URL, or local file path, optional focus area (comprehensive/architecture/security/implementation), design phase (early-draft/detailed-design/pre-implementation)
+- **Output**: Comprehensive 7-phase analysis instructions with context retrieval requirements and interactive enhancement workflow
+- **Context**: Context-aware analysis that retrieves required knowledge (coding standards, service authorization, architecture patterns, security standards, database standards)
+- **Analysis Framework**: 
+  - **Phase 1**: Basic structure validation (business spec linked, stakeholders, epic reference)
+  - **Phase 2**: Business alignment assessment (objective match, requirements coverage)
+  - **Phase 3**: Architecture analysis (database changes, domain model, API changes, standards compliance)
+  - **Phase 4**: Service-to-service authorization (@RunAsService patterns, login-server scope configuration)
+  - **Phase 5**: Security and data review (PII encryption, authorization checks, data access patterns)
+  - **Phase 6**: Context validation with transparent gap reporting
+  - **Phase 7**: Interactive enhancement workflow for immediate improvements
+- **Features**: Generic design compatible with any knowledge base, transparent context gap reporting, actionable improvement recommendations
+- **Use Cases**: Design document completeness validation, architecture review, implementation feasibility assessment, security compliance checking
+
+### 4. JIRA Transition (`jira_transition`)
 **Architecture**: Instruction-based orchestration with embedded workflow knowledge
 
 Provides JIRA ticket workflow transitions with comprehensive automation instructions for Claude Code to execute.
@@ -55,7 +74,7 @@ Provides JIRA ticket workflow transitions with comprehensive automation instruct
 - **Shortcut**: Supports `jt <ticket> <state>` pattern (e.g., "jt SI-1234 start")
 - **Workflow**: Embedded complete JIRA workflow knowledge (Open → In Definition → Ready For Eng → In Development → Ready For Codereview → Ready for Validation → In Validation → Resolved)
 
-### 4. Get JIRA Transitions (`get_jira_transitions`)
+### 5. Get JIRA Transitions (`get_jira_transitions`)
 **Architecture**: Dedicated transition path calculation with preset shortcuts
 
 Calculates transition paths between JIRA statuses with intelligent multi-step routing and preset workflow patterns.
@@ -69,7 +88,7 @@ Calculates transition paths between JIRA statuses with intelligent multi-step ro
   - `"done"` → In Validation to Resolved (1-step preset)
 - **Algorithm**: Multi-step path finding using BFS for complex workflow navigation
 
-### 5. System Tools
+### 6. System Tools
 - **echo**: Simple echo for testing MCP connectivity and basic functionality
 - **get_system_info**: System information, server diagnostics, and process monitoring
 
@@ -102,6 +121,7 @@ src/
 │   ├── base.py                # Base utilities & common patterns
 │   ├── pr_violations.py       # PR violation analysis
 │   ├── code_review.py         # Code quality review
+│   ├── tech_design_review.py  # Technical design document review
 │   ├── jira_transition.py     # JIRA workflow transitions
 │   ├── jira_transitions.py    # JIRA transition calculations
 │   ├── system.py              # System tools (echo, get_system_info)
@@ -185,6 +205,12 @@ In Claude Code, try: "Use pr_violations tool to analyze this PR: https://github.
 **Test Code Review Tool**:
 ```  
 In Claude Code, try: "Use code_review tool to review this PR with focus on security: https://github.com/owner/repo/pull/123"
+```
+
+**Test Tech Design Review Tool**:
+```
+In Claude Code, try: "Use tech_design_review tool to analyze this design doc: https://company.atlassian.net/wiki/spaces/TEAM/pages/123456/Technical+Design"
+In Claude Code, try: "Use tech_design_review tool with architecture focus on this GitHub design: https://github.com/owner/repo/blob/main/docs/DESIGN.md"
 ```
 
 **Test JIRA Transition Tools**:
@@ -333,6 +359,10 @@ Once the MCP server is added to Claude Code, test the tools with natural languag
 # Test PR analysis tools
 "Use pr_violations tool to analyze this PR: https://github.com/owner/repo/pull/123"
 "Use code_review tool to review this PR with focus on security: https://github.com/owner/repo/pull/456"
+
+# Test tech design review tools
+"Use tech_design_review tool to analyze this design doc: https://company.atlassian.net/wiki/spaces/TEAM/pages/123456/Technical+Design"
+"Use tech_design_review tool with architecture focus on this design: https://github.com/owner/repo/blob/main/docs/DESIGN.md"
 
 # Test JIRA workflow tools
 "jt SI-1234 start"
