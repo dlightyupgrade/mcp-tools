@@ -36,6 +36,9 @@ def register_all_tools(mcp: FastMCP) -> Dict[str, Any]:
         ("tech_design_review", "register_tech_design_review_tool"),
         ("jira_transition", "register_jira_transition_tool"),
         ("jira_transitions", "register_jira_transitions_tool"),
+        ("quarterly_report", "register_quarterly_report_tool"),
+        ("quarter_over_quarter", "register_quarter_over_quarter_tool"),
+        ("personal_performance", "register_personal_performance_tools"),
         ("system", "register_system_tools")
     ]
     
@@ -126,6 +129,10 @@ def get_tool_list() -> List[str]:
         "tech_design_review",
         "jira_transition",
         "get_jira_transitions",
+        "quarterly_team_report",
+        "quarter_over_quarter_analysis",
+        "personal_quarterly_report",
+        "personal_quarter_over_quarter",
         "echo",
         "get_system_info"
     ]
@@ -144,6 +151,10 @@ def get_tool_descriptions() -> Dict[str, str]:
         "tech_design_review": "Comprehensive technical design document review with architecture, security, and implementation analysis",
         "jira_transition": "Automatically perform JIRA ticket transitions using Atlassian MCP",
         "get_jira_transitions": "Calculate transition paths between JIRA statuses with preset shortcuts",
+        "quarterly_team_report": "Generate comprehensive quarterly team performance reports with anonymized metrics",
+        "quarter_over_quarter_analysis": "Analyze team performance trends and size changes across multiple quarters",
+        "personal_quarterly_report": "Generate individual contributor performance report for a single quarter",
+        "personal_quarter_over_quarter": "Analyze personal performance trends and growth across multiple quarters",
         "echo": "Echo text back to verify MCP connectivity",
         "get_system_info": "Get comprehensive system information and server diagnostics"
     }

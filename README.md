@@ -22,7 +22,7 @@ A production-ready Model Context Protocol (MCP) server built with FastMCP Python
 - **🔐 Shell Authentication**: OAuth-compatible authentication for headless/containerized environments
 - **📊 External Context**: Configurable context files for domain-specific analysis patterns
 
-## Tools Available (7 Core Tools)
+## Tools Available (9 Core Tools)
 
 ### 1. PR Violations (`pr_violations`)
 **Architecture**: Instruction-based orchestration (does NOT execute GitHub commands directly)
@@ -88,7 +88,48 @@ Calculates transition paths between JIRA statuses with intelligent multi-step ro
   - `"done"` → In Validation to Resolved (1-step preset)
 - **Algorithm**: Multi-step path finding using BFS for complex workflow navigation
 
-### 6. System Tools
+### 6. Quarterly Team Report (`quarterly_team_report`)
+**Architecture**: Data collection with intelligent analysis orchestration
+
+Generates comprehensive quarterly team performance reports with anonymized metrics for team productivity analysis.
+
+- **Input**: Team prefix (e.g., "SI", "PLAT"), year, quarter, optional description
+- **Output**: Detailed team performance report with anonymized contributor metrics
+- **Data Sources**: Jira ticket analysis and GitHub commit patterns
+- **Features**: Multi-quarter support, generic team compatibility, structured JSON/markdown output
+- **Privacy**: Anonymized team metrics for performance tracking without individual identification
+
+### 7. Quarter-over-Quarter Analysis (`quarter_over_quarter_analysis`)  
+**Architecture**: Multi-quarter trend analysis with team composition tracking
+
+Analyzes team performance trends and size changes across multiple quarters with statistical significance testing.
+
+- **Input**: Team prefix, period (e.g., "2024" or "2023-2025"), optional description
+- **Output**: Comprehensive trend analysis with team size evolution and performance metrics
+- **Features**: Team composition tracking, velocity scoring, retention analysis, statistical significance
+- **Analysis**: New contributors, departures, retention rates, productivity patterns, strategic insights
+
+### 8. Personal Quarterly Report (`personal_quarterly_report`)
+**Architecture**: Individual contributor performance analysis with privacy focus
+
+Generates individual contributor performance report for a single quarter focused on personal development tracking.
+
+- **Input**: Team prefix, year, quarter, optional description  
+- **Output**: Personal performance snapshot with individual productivity metrics
+- **Features**: Personal Jira contributions, GitHub activity, technical focus areas, productivity scoring
+- **Privacy**: Individual-only data, no team comparisons, designed for self-assessment and development planning
+
+### 9. Personal Quarter-over-Quarter (`personal_quarter_over_quarter`)
+**Architecture**: Personal growth trend analysis across multiple time periods
+
+Analyzes personal performance trends and growth across multiple quarters for individual development tracking.
+
+- **Input**: Team prefix, period (e.g., "2024" or "2023-2025"), optional description
+- **Output**: Personal growth analysis with improvement trends and development recommendations  
+- **Features**: Personal velocity trends, skill development progression, growth recommendations
+- **Privacy**: Individual contributor focus, personal development insights, career growth support
+
+### 10. System Tools
 - **echo**: Simple echo for testing MCP connectivity and basic functionality
 - **get_system_info**: System information, server diagnostics, and process monitoring
 
@@ -124,6 +165,9 @@ src/
 │   ├── tech_design_review.py  # Technical design document review
 │   ├── jira_transition.py     # JIRA workflow transitions
 │   ├── jira_transitions.py    # JIRA transition calculations
+│   ├── quarterly_report.py    # Quarterly team performance reports
+│   ├── quarter_over_quarter.py# Multi-quarter trend analysis
+│   ├── personal_performance.py# Personal performance analysis
 │   ├── system.py              # System tools (echo, get_system_info)
 │   └── context/               # External context files
 ├── auth/
@@ -370,6 +414,12 @@ Once the MCP server is added to Claude Code, test the tools with natural languag
 "Use jira_transition tool to move SI-1234 to development"
 "Use get_jira_transitions tool to show the path from Open to In Development"
 "Use get_jira_transitions with the 'start' preset"
+
+# Test reporting tools
+"Use quarterly_team_report tool to generate SI team Q2 2025 report"
+"Use quarter_over_quarter_analysis tool to analyze SI team performance trends for 2024"
+"Use personal_quarterly_report tool to generate my Q2 2025 performance report"
+"Use personal_quarter_over_quarter tool to analyze my personal growth trends for 2024"
 
 # Test system tools
 "Use echo tool to test MCP connectivity"
