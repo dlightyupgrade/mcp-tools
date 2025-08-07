@@ -275,8 +275,8 @@ curl http://localhost:8002/health
 
 #### 3. Add to Claude Code
 ```bash
-# Add the MCP server to your Claude Code environment with HTTP transport
-claude mcp add http://localhost:8002/mcp/ --transport http --scope user --name mcp-tools
+# Add the MCP server to your Claude Code environment with HTTP transport, I use myt over mcp-tools.
+claude mcp add mcp-tools http://localhost:8002/mcp/ --transport http --scope user
 
 # Verify MCP server appears in Claude Code
 claude mcp list
