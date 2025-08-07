@@ -11,6 +11,13 @@ A production-ready Model Context Protocol (MCP) server built with FastMCP Python
 - **Easier Testing**: Individual tools can be tested in isolation
 - **Enhanced Maintainability**: Add new tools by simply creating new files
 
+**Latest Update (v2.1):**
+- **✅ All Quarterly Tools Modernized**: `quarterly_report.py`, `personal_performance.py`, and `quarter_over_quarter.py` completely rewritten
+- **🚫 Eliminated Mock Data**: Removed all `subprocess` calls and mock data generation from quarterly tools
+- **📋 Instruction-Based Pattern**: All quarterly tools now follow `pr_violations.py` pattern - return detailed instructions instead of executing commands
+- **🔗 Real API Integration**: Tools now provide comprehensive data collection steps using actual JIRA MCP and GitHub CLI commands
+- **📚 Enhanced Context**: Added external context loading with comprehensive fallback content for all quarterly analysis types
+
 **Legacy Support:** The original monolithic v1.0 is preserved as `mcp_tools_server_v1.py` for demo/fallback purposes.
 
 ## Features
@@ -22,7 +29,7 @@ A production-ready Model Context Protocol (MCP) server built with FastMCP Python
 - **🔐 Shell Authentication**: OAuth-compatible authentication for headless/containerized environments
 - **📊 External Context**: Configurable context files for domain-specific analysis patterns
 
-## Tools Available (9 Core Tools)
+## Tools Available (12 Core Tools)
 
 ### 1. PR Violations (`pr_violations`)
 **Architecture**: Instruction-based orchestration (does NOT execute GitHub commands directly)
@@ -89,66 +96,73 @@ Calculates transition paths between JIRA statuses with intelligent multi-step ro
 - **Algorithm**: Multi-step path finding using BFS for complex workflow navigation
 
 ### 6. Quarterly Team Report (`quarterly_team_report`)
-**Architecture**: Data collection with intelligent analysis orchestration
+**Architecture**: Instruction-based orchestration (does NOT execute API calls directly)
 
-Generates comprehensive quarterly team performance reports with anonymized metrics for team productivity analysis.
+Generates comprehensive quarterly team performance reports with anonymized metrics by returning structured instructions for Claude Code to execute.
 
 - **Input**: Team prefix (e.g., "SI", "PLAT"), year, quarter, optional description
-- **Output**: Detailed team performance report with anonymized contributor metrics
-- **Data Sources**: Jira ticket analysis and GitHub commit patterns
-- **Features**: Multi-quarter support, generic team compatibility, structured JSON/markdown output
+- **Output**: Detailed JIRA API and GitHub CLI commands with analysis format requirements for Claude Code execution
+- **Context**: Loads external QUARTERLY-REPORT-CONTEXT.md for team analysis patterns
+- **Data Sources**: JIRA ticket analysis via `mcp__atlassian__searchJiraIssuesUsingJql` and GitHub commit patterns via `gh` CLI
+- **Features**: Multi-quarter support, generic team compatibility, comprehensive methodology documentation
 - **Privacy**: Anonymized team metrics for performance tracking without individual identification
 
 ### 7. Quarter-over-Quarter Analysis (`quarter_over_quarter_analysis`)  
-**Architecture**: Multi-quarter trend analysis with team composition tracking
+**Architecture**: Instruction-based orchestration (does NOT execute API calls directly)
 
-Analyzes team performance trends and size changes across multiple quarters with statistical significance testing.
+Analyzes team performance trends and size changes across multiple quarters by returning structured instructions for Claude Code to execute.
 
 - **Input**: Team prefix, period (e.g., "2024" or "2023-2025"), optional description
-- **Output**: Comprehensive trend analysis with team size evolution and performance metrics
-- **Features**: Team composition tracking, velocity scoring, retention analysis, statistical significance
-- **Analysis**: New contributors, departures, retention rates, productivity patterns, strategic insights
+- **Output**: Multi-quarter data collection instructions with comprehensive analysis framework for Claude Code execution
+- **Context**: Loads external QOQ-ANALYSIS-CONTEXT.md for quarter-over-quarter analysis patterns
+- **Features**: Quarter-by-quarter data collection loops, team composition tracking, velocity scoring, retention analysis, statistical significance testing
+- **Analysis**: New contributors, departures, retention rates, productivity patterns, strategic insights with trend validation
 
 ### 8. Personal Quarterly Report (`personal_quarterly_report`)
-**Architecture**: Individual contributor performance analysis with privacy focus
+**Architecture**: Instruction-based orchestration (does NOT execute API calls directly)
 
-Generates individual contributor performance report for a single quarter focused on personal development tracking.
+Generates individual contributor performance report for a single quarter by returning structured instructions for Claude Code to execute.
 
 - **Input**: Team prefix, year, quarter, optional description  
-- **Output**: Personal performance snapshot with individual productivity metrics
-- **Features**: Personal Jira contributions, GitHub activity, technical focus areas, productivity scoring
+- **Output**: Personal data collection instructions with individual analysis framework for Claude Code execution
+- **Context**: Loads external PERSONAL-PERFORMANCE-CONTEXT.md for individual contributor analysis patterns
+- **Features**: User identification steps, personal JIRA contributions, GitHub activity, technical focus areas, productivity scoring
 - **Privacy**: Individual-only data, no team comparisons, designed for self-assessment and development planning
 
 ### 9. Personal Quarter-over-Quarter (`personal_quarter_over_quarter`)
-**Architecture**: Personal growth trend analysis across multiple time periods
+**Architecture**: Instruction-based orchestration (does NOT execute API calls directly)
 
-Analyzes personal performance trends and growth across multiple quarters for individual development tracking.
+Analyzes personal performance trends and growth across multiple quarters by returning structured instructions for Claude Code to execute.
 
 - **Input**: Team prefix, period (e.g., "2024" or "2023-2025"), optional description
-- **Output**: Personal growth analysis with improvement trends and development recommendations  
-- **Features**: Personal velocity trends, skill development progression, growth recommendations
+- **Output**: Multi-quarter personal data collection instructions with trend analysis framework for Claude Code execution
+- **Context**: Loads external PERSONAL-QOQ-CONTEXT.md for personal growth analysis patterns
+- **Features**: Personal velocity trends, skill development progression, growth recommendations, user identification and authentication
 - **Privacy**: Individual contributor focus, personal development insights, career growth support
 
-### 10. System Tools
+### 10-12. System Tools
 - **echo**: Simple echo for testing MCP connectivity and basic functionality
 - **get_system_info**: System information, server diagnostics, and process monitoring
 
 ## Key Architecture: Instruction-Based Orchestration
 
-**Critical Design Pattern**: These tools do NOT execute GitHub CLI commands or JIRA commands directly. Instead, they return comprehensive instructions for Claude Code to execute externally.
+**Critical Design Pattern**: ALL tools follow instruction-based orchestration - they do NOT execute GitHub CLI commands, JIRA commands, or API calls directly. Instead, they return comprehensive instructions for Claude Code to execute externally.
 
 **Why This Architecture**:
 - MCP servers can't reliably run external commands in containerized environments
-- Claude Code has proper GitHub CLI authentication and environment access
-- Maintains separation of concerns: data orchestration vs execution
-- Follows the same pattern as other successful MCP tools
+- Claude Code has proper GitHub CLI authentication and environment access  
+- Maintains separation of concerns: intelligent orchestration vs execution
+- Eliminates mock data and subprocess dependencies that were problematic
+- Follows proven patterns from pr_violations.py - all tools now use this approach
 
-**Example Flow**:
-1. User calls `pr_violations` tool with PR URL
-2. Tool returns structured GitHub API commands and analysis requirements
-3. Claude Code executes the GitHub API calls using `gh` CLI
-4. Claude Code processes results using the provided analysis format
-5. Result: Comprehensive PR violations analysis with actionable solutions
+**Universal Example Flow**:
+1. User calls ANY tool (e.g., `pr_violations`, `quarterly_team_report`, `personal_performance`)
+2. Tool returns structured API commands and comprehensive analysis requirements
+3. Claude Code executes the API calls using appropriate tools (`gh` CLI, MCP Atlassian, etc.)
+4. Claude Code processes results using the provided analysis format and external context
+5. Result: Comprehensive analysis with actionable insights and complete transparency
+
+**All Tools Follow This Pattern**: PR analysis, code review, tech design review, JIRA transitions, quarterly reports, personal performance - every tool uses instruction-based orchestration.
 
 ## 🏗️ Modular Architecture
 
@@ -317,16 +331,19 @@ Server runs on `http://localhost:8002` with endpoints:
 - **External Context**: Domain-specific guidelines and patterns
 
 ### Tool Integration
-**Architecture Change**: Tools now use instruction-based orchestration instead of external script execution:
+**Universal Architecture**: ALL tools use instruction-based orchestration - no external script execution or subprocess calls:
 
-**Previous Architecture** (Deprecated):
-- `pr-violations-claude`: External script execution
-- `code-review-claude`: External script execution  
+**Current Architecture (v2.1)**:
+- **PR Analysis**: `pr_violations`, `code_review` - Return GitHub API instructions for Claude Code execution
+- **Design Review**: `tech_design_review` - Returns comprehensive document analysis instructions for Claude Code execution  
+- **JIRA Workflow**: `jira_transition`, `get_jira_transitions` - Return JIRA workflow instructions with embedded transition knowledge
+- **Performance Reports**: `quarterly_team_report`, `quarter_over_quarter_analysis`, `personal_quarterly_report`, `personal_quarter_over_quarter` - Return detailed data collection instructions using real API calls
+- **System Tools**: `echo`, `get_system_info` - Direct execution for server diagnostics
 
-**Current Architecture** (Active):
-- `pr_violations`: Returns GitHub API instructions for Claude Code execution
-- `code_review`: Returns comprehensive analysis instructions for Claude Code execution
-- External context files: `PR-VIOLATIONS-CONTEXT.md`, `CODE-REVIEW-CONTEXT.md` for domain patterns
+**External Context Files**: All tools load domain-specific context with intelligent fallbacks:
+- `PR-VIOLATIONS-CONTEXT.md`, `CODE-REVIEW-CONTEXT.md` - PR and code analysis patterns
+- `QOQ-ANALYSIS-CONTEXT.md`, `QUARTERLY-REPORT-CONTEXT.md` - Performance analysis methodologies
+- `PERSONAL-PERFORMANCE-CONTEXT.md` - Individual contributor analysis patterns
 
 ## Troubleshooting for Developers
 
@@ -378,9 +395,12 @@ podman run --restart=always -p 8002:8002 -d --name mcp-tools mcp-tools:latest
 **Solution**: Verify ticket ID format (e.g., "SI-1234") and use supported status aliases
 
 **Problem**: Tools don't return expected analysis instructions
-**Solution**: Check that external context files exist:
-- `/Users/dlighty/code/llm-context/PR-VIOLATIONS-CONTEXT.md`
-- `/Users/dlighty/code/llm-context/CODE-REVIEW-CONTEXT.md`
+**Solution**: Tools use intelligent fallback content automatically, but you can enhance analysis by adding context files:
+- `/Users/dlighty/code/llm-context/PR-VIOLATIONS-CONTEXT.md` - PR analysis patterns
+- `/Users/dlighty/code/llm-context/CODE-REVIEW-CONTEXT.md` - Code review patterns  
+- `/Users/dlighty/code/llm-context/QOQ-ANALYSIS-CONTEXT.md` - Quarter-over-quarter analysis
+- `/Users/dlighty/code/llm-context/QUARTERLY-REPORT-CONTEXT.md` - Team performance analysis
+- `/Users/dlighty/code/llm-context/PERSONAL-PERFORMANCE-CONTEXT.md` - Individual contributor analysis
 
 #### 5. Container Auto-Restart Issues
 ```bash
@@ -434,10 +454,11 @@ Once the MCP server is added to Claude Code, test the tools with natural languag
 - `TOOL_TIMEOUT`: Tool execution timeout in seconds (default: 300)
 - `RATE_LIMIT_REQUESTS`: Rate limit for requests (default: 100)
 
-### Tool Script Paths
-Configure paths to external scripts via environment variables:
-- `PR_VIOLATIONS_SCRIPT`: Path to pr-violations-claude script
-- `CODE_REVIEW_SCRIPT`: Path to code-review-claude script
+### External Context Configuration
+Tools automatically load external context files with intelligent fallbacks:
+- Context files are loaded from `/Users/dlighty/code/llm-context/` directory
+- If context files don't exist, comprehensive fallback content is provided
+- No configuration required - tools handle context loading automatically
 
 ### External Dependencies
 For deployment and testing:

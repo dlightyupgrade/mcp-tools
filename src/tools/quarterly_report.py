@@ -1,412 +1,45 @@
 #!/usr/bin/env python3
 """
-Quarterly Reporting Tools
+Quarterly Team Performance Reporting Tool
 
-Generate comprehensive quarterly team performance reports with anonymized metrics,
-development velocity analysis, and technical achievement summaries.
+PREREQUISITES - MUST BE CONFIGURED BEFORE USE:
+• GitHub CLI: `brew install gh` + `gh auth login`
+• Atlassian MCP Server: Authentication and cloud ID configuration required
+• JIRA Access: Team must have access to JIRA project with appropriate permissions
+• JQ: `brew install jq` for JSON processing
+
+This tool generates comprehensive quarterly team performance reports with anonymized metrics,
+development velocity analysis, and technical achievement summaries by RETURNING INSTRUCTIONS
+for Claude Code to execute actual API calls rather than performing analysis directly.
 """
 
 import logging
-import json
-import subprocess
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple
-from dataclasses import dataclass, asdict
-from collections import defaultdict, Counter
+from typing import Dict, Any
 
 from fastmcp import FastMCP
-from .base import ToolBase
+from .base import ToolBase, get_context_fallback
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class QuarterConfig:
-    """Configuration for quarter date ranges"""
-    year: int
-    quarter: int
-    start_date: str
-    end_date: str
-    quarter_name: str
-
-
-@dataclass
-class ReportMetrics:
-    """Container for quarterly report metrics"""
-    total_tickets: int
-    issue_types: Dict[str, int]
-    priority_distribution: Dict[str, int]
-    total_commits: int
-    active_repositories: int
-    development_areas: Dict[str, str]
-    technical_focus_areas: List[str]
-    team_velocity: Dict[str, Any]
-
-
-class QuarterlyReportGenerator:
-    """Generate quarterly team performance reports"""
-    
-    @staticmethod
-    def get_quarter_config(year: int, quarter: int) -> QuarterConfig:
-        """Get date configuration for specified quarter"""
-        quarter_ranges = {
-            1: ("01-01", "03-31", "Q1"),
-            2: ("04-01", "06-30", "Q2"), 
-            3: ("07-01", "09-30", "Q3"),
-            4: ("10-01", "12-31", "Q4")
-        }
-        
-        if quarter not in quarter_ranges:
-            raise ValueError(f"Invalid quarter: {quarter}. Must be 1-4.")
-        
-        start_month_day, end_month_day, q_name = quarter_ranges[quarter]
-        
-        return QuarterConfig(
-            year=year,
-            quarter=quarter,
-            start_date=f"{year}-{start_month_day}",
-            end_date=f"{year}-{end_month_day}",
-            quarter_name=f"{q_name} {year}"
-        )
-    
-    @staticmethod
-    def execute_jira_search(team_prefix: str, start_date: str, end_date: str) -> Tuple[bool, List[Dict], str]:
-        """Execute Jira search for team tickets in date range"""
-        try:
-            jql = f'project = {team_prefix} AND created >= "{start_date}" AND created <= "{end_date}" ORDER BY created DESC'
-            
-            # Use mcp__atlassian__searchJiraIssuesUsingJql equivalent
-            cmd = [
-                "python", "-c", f"""
-import json
-import sys
-
-# Mock Jira API call - in real implementation, would use Atlassian API
-# For demo purposes, return sample data structure
-sample_tickets = [
-    {{
-        "key": "{team_prefix}-8001",
-        "fields": {{
-            "summary": "Sample ticket 1",
-            "issuetype": {{"name": "Task"}},
-            "priority": {{"name": "P2"}},
-            "status": {{"name": "Done"}},
-            "created": "{start_date}T10:00:00.000+0000"
-        }}
-    }},
-    {{
-        "key": "{team_prefix}-8002", 
-        "fields": {{
-            "summary": "Sample ticket 2",
-            "issuetype": {{"name": "Bug"}},
-            "priority": {{"name": "P1"}},
-            "status": {{"name": "In Progress"}},
-            "created": "{start_date}T11:00:00.000+0000"
-        }}
-    }}
-]
-
-print(json.dumps({{"issues": sample_tickets, "total": len(sample_tickets)}}))
-"""
-            ]
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            
-            if result.returncode == 0:
-                data = json.loads(result.stdout)
-                return True, data.get("issues", []), ""
-            else:
-                return False, [], f"Jira search failed: {result.stderr}"
-                
-        except subprocess.TimeoutExpired:
-            return False, [], "Jira search timeout"
-        except json.JSONDecodeError as e:
-            return False, [], f"Failed to parse Jira response: {e}"
-        except Exception as e:
-            return False, [], f"Jira search error: {e}"
-    
-    @staticmethod 
-    def execute_github_search(team_prefix: str, start_date: str, end_date: str) -> Tuple[bool, List[Dict], str]:
-        """Execute GitHub search for team commits in date range"""
-        try:
-            cmd = [
-                "gh", "search", "commits", f"{team_prefix}-",
-                "--owner", "Credify", 
-                f"--author-date={start_date}..{end_date}",
-                "--limit", "50",
-                "--json", "sha,commit,repository,author,url"
-            ]
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            
-            if result.returncode == 0:
-                commits = json.loads(result.stdout)
-                return True, commits, ""
-            else:
-                return False, [], f"GitHub search failed: {result.stderr}"
-                
-        except subprocess.TimeoutExpired:
-            return False, [], "GitHub search timeout"
-        except json.JSONDecodeError as e:
-            return False, [], f"Failed to parse GitHub response: {e}"
-        except Exception as e:
-            return False, [], f"GitHub search error: {e}"
-    
-    @staticmethod
-    def analyze_jira_metrics(tickets: List[Dict]) -> Dict[str, Any]:
-        """Analyze Jira tickets for team metrics"""
-        if not tickets:
-            return {
-                "total_tickets": 0,
-                "issue_types": {},
-                "priority_distribution": {},
-                "status_distribution": {}
-            }
-        
-        issue_types = Counter()
-        priorities = Counter()
-        statuses = Counter()
-        
-        for ticket in tickets:
-            fields = ticket.get("fields", {})
-            
-            # Issue type
-            issue_type = fields.get("issuetype", {}).get("name", "Unknown")
-            issue_types[issue_type] += 1
-            
-            # Priority
-            priority = fields.get("priority", {}).get("name", "Unknown")
-            priorities[priority] += 1
-            
-            # Status
-            status = fields.get("status", {}).get("name", "Unknown")
-            statuses[status] += 1
-        
-        return {
-            "total_tickets": len(tickets),
-            "issue_types": dict(issue_types),
-            "priority_distribution": dict(priorities), 
-            "status_distribution": dict(statuses)
-        }
-    
-    @staticmethod
-    def analyze_github_metrics(commits: List[Dict]) -> Dict[str, Any]:
-        """Analyze GitHub commits for team metrics"""
-        if not commits:
-            return {
-                "total_commits": 0,
-                "active_repositories": 0,
-                "repositories": {},
-                "commit_frequency": {}
-            }
-        
-        repositories = set()
-        repo_commits = Counter()
-        authors = set()
-        
-        for commit in commits:
-            repo = commit.get("repository", {})
-            repo_name = repo.get("name", "unknown")
-            
-            repositories.add(repo_name)
-            repo_commits[repo_name] += 1
-            
-            author = commit.get("author", {})
-            if not author.get("is_bot", False):
-                authors.add(author.get("login", "unknown"))
-        
-        return {
-            "total_commits": len(commits),
-            "active_repositories": len(repositories),
-            "repositories": dict(repo_commits),
-            "unique_contributors": len(authors)
-        }
-    
-    @staticmethod
-    def extract_technical_focus_areas(tickets: List[Dict], commits: List[Dict]) -> List[str]:
-        """Extract technical focus areas from tickets and commits"""
-        focus_areas = []
-        
-        # Analyze ticket summaries for common themes
-        summaries = []
-        for ticket in tickets:
-            summary = ticket.get("fields", {}).get("summary", "")
-            summaries.append(summary.lower())
-        
-        # Analyze commit messages for common themes
-        commit_messages = []
-        for commit in commits:
-            message = commit.get("commit", {}).get("message", "")
-            commit_messages.append(message.lower())
-        
-        # Common technical patterns to look for
-        patterns = {
-            "payment": ["payment", "pay", "transaction"],
-            "authentication": ["auth", "login", "token", "oauth"],
-            "database": ["database", "migration", "schema", "sql"],
-            "api": ["api", "endpoint", "graphql", "rest"],
-            "ui": ["ui", "frontend", "component", "react"],
-            "infrastructure": ["infra", "deploy", "docker", "k8s"],
-            "testing": ["test", "automation", "qa", "coverage"],
-            "security": ["security", "encryption", "validation"]
-        }
-        
-        all_text = " ".join(summaries + commit_messages)
-        
-        for area, keywords in patterns.items():
-            if any(keyword in all_text for keyword in keywords):
-                focus_areas.append(area.title())
-        
-        return focus_areas[:8]  # Top 8 focus areas
-    
-    @staticmethod
-    def generate_report_content(
-        team_prefix: str,
-        quarter_config: QuarterConfig,
-        jira_metrics: Dict[str, Any],
-        github_metrics: Dict[str, Any],
-        focus_areas: List[str]
-    ) -> str:
-        """Generate formatted quarterly report content"""
-        
-        report = f"""# {quarter_config.quarter_name} {team_prefix} Project Quarterly Summary Report
-
-## Executive Summary
-
-This report provides an anonymized quarterly analysis of the {team_prefix} project team performance during {quarter_config.quarter_name} ({quarter_config.start_date} to {quarter_config.end_date}). The analysis covers both Jira ticket completion metrics and GitHub development activity to provide comprehensive team productivity insights.
-
-## Key Metrics
-
-### Jira Project Analysis
-- **Total Tickets Analyzed**: {jira_metrics['total_tickets']} tickets collected from {quarter_config.quarter_name}
-- **Issue Types Distribution**: 
-{_format_distribution(jira_metrics.get('issue_types', {}), jira_metrics['total_tickets'])}
-- **Priority Distribution**:
-{_format_distribution(jira_metrics.get('priority_distribution', {}), jira_metrics['total_tickets'])}
-
-### GitHub Development Activity
-- **Total Commits Analyzed**: {github_metrics['total_commits']}+ commits with {team_prefix}- ticket references
-- **Active Repositories**: {github_metrics['active_repositories']}+ repositories with {team_prefix}-related development
-- **Unique Contributors**: {github_metrics['unique_contributors']} team members (anonymized)
-
-## Team Performance Analysis (Anonymized)
-
-### Development Velocity
-- **Average Commits per Week**: {github_metrics['total_commits'] // 13:.0f}-{(github_metrics['total_commits'] + 5) // 13:.0f} commits with {team_prefix} references
-- **Repository Coverage**: Broad development across multiple services
-- **Cross-functional Collaboration**: Evidence of UI, backend, and infrastructure coordination
-
-### Technical Focus Areas {quarter_config.quarter_name}
-{_format_focus_areas(focus_areas)}
-
-### Quality Indicators
-- **Comprehensive Testing**: Evidence of extensive test coverage in commits
-- **Code Review Process**: Multi-commit iterations indicating thorough peer review
-- **Cross-Service Integration**: Development spanning multiple microservices
-
-## Team Collaboration Patterns
-
-### Multi-Repository Coordination
-The team demonstrated strong coordination across:
-{_format_repositories(github_metrics.get('repositories', {}))}
-
-### Development Workflow Excellence
-- **Branch Management**: Consistent feature branch naming with ticket references
-- **Commit Message Standards**: Clear {team_prefix}-ticket references in all commits
-- **Integration Testing**: Evidence of QA automation framework updates
-
-## Technical Achievements {quarter_config.quarter_name}
-
-### Development Statistics
-- **Ticket Completion**: {jira_metrics['total_tickets']} tickets processed
-- **Code Contributions**: {github_metrics['total_commits']} commits across {github_metrics['active_repositories']} repositories
-- **Team Engagement**: {github_metrics['unique_contributors']} active contributors
-
-## Appendix: Data Sources Analyzed
-
-### Jira Data Sources
-- **Project**: {team_prefix} (Credify Atlassian instance)
-- **Query Period**: {quarter_config.start_date} to {quarter_config.end_date}
-- **Tickets Collected**: {jira_metrics['total_tickets']} tickets via JQL
-- **Query**: `project = {team_prefix} AND created >= "{quarter_config.start_date}" AND created <= "{quarter_config.end_date}" ORDER BY created DESC`
-- **Fields Analyzed**: Issue type, priority, status, created date, summary, description
-
-### GitHub Data Sources  
-- **Organization**: Credify
-- **Search Criteria**: Commits with "{team_prefix}-" references in {quarter_config.quarter_name}
-- **Date Range**: {quarter_config.start_date} to {quarter_config.end_date}
-- **Repositories Analyzed**: {github_metrics['active_repositories']}+ active repositories
-- **Commit Data**: Author, committer, message, repository, date, URL
-
-### Analysis Methodology
-- **Anonymization**: Individual contributor names aggregated into team metrics
-- **Categorization**: Technical focus areas derived from ticket summaries and commit messages
-- **Quality Metrics**: Based on commit patterns, test coverage indicators, and cross-repository coordination
-- **Team Performance**: Velocity and collaboration patterns inferred from development activity frequency and distribution
-
-### Data Quality Notes
-- All metrics represent actual development activity from production systems
-- Ticket and commit data verified through official Atlassian and GitHub APIs
-- Analysis excludes bot-generated commits and administrative tickets
-- Cross-reference validation performed between Jira ticket numbers and commit messages
-"""
-        
-        return report
-
-
-def _format_distribution(distribution: Dict[str, int], total: int) -> str:
-    """Format distribution data as bullet points with percentages"""
-    if not distribution or total == 0:
-        return "  - No data available"
-    
-    lines = []
-    for item, count in distribution.items():
-        percentage = (count / total) * 100
-        lines.append(f"  - {item}: {percentage:.0f}% ({count} tickets)")
-    
-    return "\n".join(lines)
-
-
-def _format_focus_areas(focus_areas: List[str]) -> str:
-    """Format technical focus areas as numbered list"""
-    if not focus_areas:
-        return "1. No specific focus areas identified"
-    
-    lines = []
-    for i, area in enumerate(focus_areas, 1):
-        lines.append(f"{i}. **{area}** - Development activity and improvements")
-    
-    return "\n".join(lines)
-
-
-def _format_repositories(repositories: Dict[str, int]) -> str:
-    """Format repository list with commit counts"""
-    if not repositories:
-        return "- No repository data available"
-    
-    # Group by type for better organization
-    lines = []
-    for repo, count in sorted(repositories.items(), key=lambda x: x[1], reverse=True)[:10]:
-        lines.append(f"- {repo} ({count} commits)")
-    
-    return "\n".join(lines)
-
-
-def register_quarterly_report_tool(mcp: FastMCP):
-    """Register quarterly reporting tool with the FastMCP server"""
+def register_quarterly_team_report_tool(mcp: FastMCP):
+    """Register quarterly team report tool with the FastMCP server"""
     
     @mcp.tool
     def quarterly_team_report(
         team_prefix: str,
-        year: int, 
+        year: int,
         quarter: int,
         description: str = ""
     ) -> Dict[str, Any]:
         """
-        Generate comprehensive quarterly team performance report with anonymized metrics.
+        Generate comprehensive quarterly team performance report with anonymized metrics - INSTRUCTIONS ONLY.
         
-        Analyzes Jira tickets and GitHub commits for specified team and quarter,
-        providing development velocity, technical focus areas, and team collaboration insights.
+        Provides detailed step-by-step instructions for Claude Code to perform comprehensive team
+        performance analysis including JIRA tickets, GitHub commits, technical focus areas, and
+        development velocity using actual API calls. Does NOT execute analysis directly - returns
+        structured instructions for external execution.
         
         Args:
             team_prefix: Team/project prefix (e.g., "SI", "PLAT", "CORE")
@@ -415,9 +48,9 @@ def register_quarterly_report_tool(mcp: FastMCP):
             description: Optional description of analysis focus
             
         Returns:
-            Dictionary containing comprehensive quarterly report analysis
+            Dictionary containing detailed processing instructions for Claude Code execution
         """
-        logger.info(f"Quarterly report requested: {team_prefix} {year} Q{quarter}")
+        logger.info(f"Quarterly team report requested: {team_prefix} Q{quarter} {year}")
         
         try:
             # Validate inputs
@@ -427,79 +60,280 @@ def register_quarterly_report_tool(mcp: FastMCP):
                     error_type="validation_error"
                 )
             
-            if year < 2020 or year > 2030:
+            if not 1 <= quarter <= 4:
                 return ToolBase.create_error_response(
-                    "Invalid year. Must be between 2020 and 2030",
+                    "Invalid quarter. Must be 1-4",
                     error_type="validation_error"
                 )
             
-            # Get quarter configuration
-            quarter_config = QuarterlyReportGenerator.get_quarter_config(year, quarter)
+            if not 2020 <= year <= 2030:
+                return ToolBase.create_error_response(
+                    "Invalid year. Must be between 2020-2030",
+                    error_type="validation_error"
+                )
             
-            # Collect Jira data
-            logger.info(f"Collecting Jira tickets for {team_prefix} {quarter_config.quarter_name}")
-            jira_success, jira_tickets, jira_error = QuarterlyReportGenerator.execute_jira_search(
-                team_prefix, quarter_config.start_date, quarter_config.end_date
+            # Calculate quarter date ranges
+            quarter_starts = {
+                1: (1, 1),   # Q1: Jan 1 - Mar 31
+                2: (4, 1),   # Q2: Apr 1 - Jun 30
+                3: (7, 1),   # Q3: Jul 1 - Sep 30
+                4: (10, 1),  # Q4: Oct 1 - Dec 31
+            }
+            
+            quarter_ends = {
+                1: (3, 31),
+                2: (6, 30), 
+                3: (9, 30),
+                4: (12, 31)
+            }
+            
+            start_month, start_day = quarter_starts[quarter]
+            end_month, end_day = quarter_ends[quarter]
+            
+            start_date = f"{year}-{start_month:02d}-{start_day:02d}"
+            end_date = f"{year}-{end_month:02d}-{end_day:02d}"
+            quarter_name = f"Q{quarter} {year}"
+            
+            # Load external context for quarterly reporting
+            context_content = ToolBase.load_external_context(
+                "/Users/dlighty/code/llm-context/QUARTERLY-REPORT-CONTEXT.md",
+                get_context_fallback("quarterly_report")
             )
             
-            if not jira_success:
-                logger.warning(f"Jira search failed: {jira_error}")
-                jira_tickets = []  # Continue with empty data
-            
-            # Collect GitHub data  
-            logger.info(f"Collecting GitHub commits for {team_prefix} {quarter_config.quarter_name}")
-            github_success, github_commits, github_error = QuarterlyReportGenerator.execute_github_search(
-                team_prefix, quarter_config.start_date, quarter_config.end_date
-            )
-            
-            if not github_success:
-                logger.warning(f"GitHub search failed: {github_error}")
-                github_commits = []  # Continue with empty data
-            
-            # Analyze metrics
-            jira_metrics = QuarterlyReportGenerator.analyze_jira_metrics(jira_tickets)
-            github_metrics = QuarterlyReportGenerator.analyze_github_metrics(github_commits)
-            focus_areas = QuarterlyReportGenerator.extract_technical_focus_areas(jira_tickets, github_commits)
-            
-            # Generate report
-            report_content = QuarterlyReportGenerator.generate_report_content(
-                team_prefix, quarter_config, jira_metrics, github_metrics, focus_areas
-            )
-            
-            # Compile response
-            response_data = {
-                "report_content": report_content,
-                "quarter": {
-                    "year": year,
-                    "quarter": quarter,
-                    "name": quarter_config.quarter_name,
-                    "date_range": f"{quarter_config.start_date} to {quarter_config.end_date}"
+            # Return detailed analysis instructions
+            quarterly_instructions = {
+                "tool_name": "quarterly_team_report",
+                "analysis_context": f"Quarterly Team Performance Report - {quarter_name}",
+                "timestamp": ToolBase.create_success_response({})["timestamp"],
+                "team_prefix": team_prefix,
+                "year": year,
+                "quarter": quarter,
+                "quarter_name": quarter_name,
+                "start_date": start_date,
+                "end_date": end_date,
+                "description": description,
+                
+                "processing_instructions": {
+                    "overview": f"Generate comprehensive quarterly team performance report for {team_prefix} team covering {quarter_name}. Focus: {description or 'comprehensive team performance analysis with anonymized metrics'}.",
+                    
+                    "prerequisite_validation": [
+                        "Verify GitHub CLI authentication: `gh auth status`",
+                        "Verify Atlassian MCP server connection and cloud ID access",
+                        "Confirm JIRA project access for team prefix queries",
+                        "Ensure `jq` is available for JSON processing"
+                    ],
+                    
+                    "data_collection_steps": [
+                        "## JIRA Data Collection",
+                        f"Execute: mcp__atlassian__searchJiraIssuesUsingJql(cloudId='credify.atlassian.net', jql='project = \"{team_prefix}\" AND created >= \"{start_date}\" AND created <= \"{end_date}\" ORDER BY created DESC', fields=['summary', 'description', 'status', 'issuetype', 'priority', 'created', 'assignee', 'components'], maxResults=250)",
+                        "",
+                        "## GitHub Data Collection", 
+                        "# Find repositories for team using GitHub search",
+                        f"Execute: gh search repos 'org:credify topic:{team_prefix.lower()} OR {team_prefix.lower()} in:name' --json name,url,defaultBranch",
+                        "# For each repository found, collect commit data:",
+                        f"Execute: gh api 'search/commits?q=author-date:{start_date}..{end_date}+org:credify+repo:REPO_NAME' --paginate",
+                        "# Alternative if repo-specific search fails:",
+                        f"Execute: gh api 'repos/credify/REPO_NAME/commits?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z' --paginate",
+                        "",
+                        "## Team Member Identification",
+                        "# Extract unique GitHub commit authors (anonymize in final report)",
+                        "# Cross-reference JIRA assignees with GitHub authors",
+                        "# Build contributor mapping while preserving privacy"
+                    ],
+                    
+                    "analysis_requirements": [
+                        "**JIRA Metrics Analysis:**",
+                        "- Total tickets completed in quarter",
+                        "- Issue type distribution (Story, Bug, Task, Epic, etc.)",
+                        "- Priority distribution (Critical, High, Medium, Low)",
+                        "- Average completion time by issue type",
+                        "- Sprint velocity trends (if sprint data available)",
+                        "",
+                        "**GitHub Metrics Analysis:**", 
+                        "- Total commits by team members",
+                        "- Active repository count",
+                        "- Lines of code changes (additions/deletions)",
+                        "- Pull request metrics (if accessible)",
+                        "- Repository activity patterns",
+                        "",
+                        "**Team Velocity Calculation:**",
+                        "- Tickets per contributor ratio",
+                        "- Commits per contributor ratio", 
+                        "- Cross-functional collaboration indicators",
+                        "- Technical focus area identification from ticket summaries",
+                        "",
+                        "**Privacy and Anonymization:**",
+                        "- Individual contributor names anonymized in final report",
+                        "- Aggregate metrics only (no individual performance data)",
+                        "- Focus on team patterns, not individual attribution"
+                    ],
+                    
+                    "required_output_format": f"""
+# {team_prefix} Team Quarterly Performance Report - {quarter_name}
+
+## Executive Summary
+*Report generated on {{timestamp}} for {team_prefix} team covering {quarter_name} ({{start_date}} to {{end_date}})*
+
+{{executive_summary_paragraph_with_key_achievements}}
+
+## JIRA Analysis
+
+### Issue Completion Metrics
+- **Total Issues Completed**: {{total_tickets}}
+- **Issue Type Breakdown**:
+  - Stories: {{story_count}} ({{story_percentage}}%)
+  - Bugs: {{bug_count}} ({{bug_percentage}}%)
+  - Tasks: {{task_count}} ({{task_percentage}}%)
+  - Epics: {{epic_count}} ({{epic_percentage}}%)
+
+### Priority Distribution
+- **Critical**: {{critical_count}} issues
+- **High**: {{high_count}} issues  
+- **Medium**: {{medium_count}} issues
+- **Low**: {{low_count}} issues
+
+### Completion Patterns
+- **Average Resolution Time**: {{avg_resolution_days}} days
+- **Sprint Velocity**: {{sprint_velocity}} (if applicable)
+
+## GitHub Analysis
+
+### Development Activity
+- **Total Commits**: {{total_commits}}
+- **Active Repositories**: {{active_repo_count}}
+- **Lines Changed**: +{{lines_added}} / -{{lines_deleted}}
+
+### Collaboration Metrics
+- **Unique Contributors**: {{unique_contributors}} (anonymized)
+- **Cross-Repository Work**: {{cross_repo_percentage}}%
+- **Commit Frequency**: {{commits_per_week}} commits/week average
+
+## Technical Focus Areas
+
+Based on JIRA ticket summaries and GitHub commit messages:
+
+1. **{{focus_area_1}}**: {{description_and_impact}}
+2. **{{focus_area_2}}**: {{description_and_impact}}  
+3. **{{focus_area_3}}**: {{description_and_impact}}
+
+## Team Velocity Assessment
+
+### Productivity Metrics
+- **Tickets per Contributor**: {{tickets_per_contributor}}
+- **Commits per Contributor**: {{commits_per_contributor}}
+- **Velocity Score**: {{velocity_calculation}} (weighted metric)
+
+### Development Velocity
+- **Code Quality Focus**: {{code_quality_indicators}}%
+- **Feature Development**: {{feature_work_percentage}}%
+- **Bug Resolution**: {{bug_resolution_percentage}}%
+- **Technical Debt**: {{tech_debt_percentage}}%
+
+## Quarter Achievements
+
+### Key Accomplishments
+- {{achievement_1}}
+- {{achievement_2}}
+- {{achievement_3}}
+
+### Technical Improvements
+- {{technical_improvement_1}}
+- {{technical_improvement_2}}
+
+## Data Sources and Methodology
+
+### Data Collection Period
+- **Start Date**: {start_date}
+- **End Date**: {end_date}
+- **Quarter**: {quarter_name}
+
+### Data Sources
+- **JIRA**: Project {team_prefix} ticket completion and workflow data
+- **GitHub**: Credify organization repositories with {team_prefix} team involvement
+- **Analysis Tools**: MCP Atlassian integration + GitHub CLI + JQL queries
+
+### Privacy Compliance
+- **Individual Attribution**: Removed from final report
+- **Aggregate Metrics**: Team-level analysis only
+- **Anonymization**: Contributor identification replaced with role-based references
+- **Data Retention**: Analysis data not persisted beyond report generation
+
+### Methodology Notes
+- **Team Identification**: Based on JIRA project assignment and GitHub repository access
+- **Velocity Calculation**: Weighted combination of ticket completion rate and commit frequency
+- **Technical Focus**: Derived from ticket summary keyword analysis and commit message patterns
+- **Quality Metrics**: Cross-validated between JIRA labels and GitHub PR review data where available
+
+*Generated using MCP Tools Quarterly Reporting with real-time data collection*
+""",
                 },
-                "metrics": {
-                    "jira": jira_metrics,
-                    "github": github_metrics,
-                    "focus_areas": focus_areas
+                
+                "external_context": context_content,
+                
+                "success_criteria": {
+                    "data_collection": "JIRA tickets and GitHub commits successfully retrieved for the specified quarter",
+                    "team_identification": "Team members identified through JIRA assignments and GitHub contributions",
+                    "metrics_calculation": "Productivity and velocity metrics calculated with appropriate anonymization",
+                    "technical_analysis": "Technical focus areas identified from ticket summaries and commit messages", 
+                    "report_generation": "Comprehensive markdown report generated with all required sections",
+                    "privacy_compliance": "Individual contributor data anonymized in final output"
                 },
-                "data_collection": {
-                    "jira_success": jira_success,
-                    "github_success": github_success,
-                    "jira_error": jira_error if not jira_success else None,
-                    "github_error": github_error if not github_success else None
+                
+                "troubleshooting": {
+                    "jira_access_issues": "Verify Atlassian MCP server configuration and cloud ID permissions",
+                    "github_rate_limits": "Use GitHub CLI authentication to increase API rate limits",
+                    "empty_results": "Verify team prefix exists in JIRA projects and GitHub repositories",
+                    "permission_errors": "Ensure sufficient JIRA project permissions and GitHub organization access"
                 }
             }
             
-            logger.info(f"Quarterly report generated successfully: {jira_metrics['total_tickets']} tickets, {github_metrics['total_commits']} commits")
+            logger.info(f"Quarterly team report instructions generated for: {team_prefix} Q{quarter} {year}")
+            return quarterly_instructions
             
-            return ToolBase.create_success_response(response_data)
-            
-        except ValueError as e:
-            return ToolBase.create_error_response(
-                f"Invalid quarter configuration: {str(e)}",
-                error_type="validation_error"
-            )
         except Exception as e:
-            logger.error(f"Error generating quarterly report: {e}")
+            logger.error(f"Error generating quarterly team report instructions: {str(e)}")
             return ToolBase.create_error_response(
-                f"Failed to generate quarterly report: {str(e)}",
+                f"Failed to generate quarterly team report instructions: {str(e)}",
                 error_type=type(e).__name__
             )
+
+
+def get_context_fallback(context_type: str) -> str:
+    """Get fallback context content for quarterly report"""
+    
+    if context_type == "quarterly_report":
+        return """# Quarterly Team Performance Analysis Guidelines
+
+## Data Collection Strategy
+- **JIRA Analysis**: Focus on completed tickets within quarter boundaries
+- **GitHub Analysis**: Team repository activity and commit patterns  
+- **Team Identification**: Cross-reference JIRA assignees with GitHub contributors
+- **Privacy First**: Anonymize individual contributors in final reporting
+
+## Key Metrics Framework
+- **Productivity**: Tickets completed, commits made, lines changed
+- **Velocity**: Work completion rate, cross-functional collaboration
+- **Technical Focus**: Areas of development emphasis from ticket analysis
+- **Quality Indicators**: Bug resolution patterns, technical debt management
+
+## Report Structure
+1. **Executive Summary**: Quarter overview with key achievements
+2. **JIRA Analysis**: Issue metrics, priority distribution, completion patterns
+3. **GitHub Analysis**: Development activity, collaboration metrics
+4. **Technical Focus Areas**: Primary development areas derived from data
+5. **Team Velocity Assessment**: Productivity and development velocity metrics
+6. **Data Sources and Methodology**: Transparency and reproducibility information
+
+## Privacy and Ethics
+- **No Individual Performance Reviews**: Focus on team-level metrics only
+- **Anonymized Reporting**: Individual contributor names not included in final output
+- **Aggregate Analysis**: All metrics presented as team totals or averages
+- **Data Retention**: Analysis data not stored beyond report generation
+
+## Quality Validation
+- **Cross-Source Verification**: JIRA tickets cross-referenced with GitHub activity
+- **Date Range Accuracy**: Strict quarter boundary enforcement
+- **Team Boundary Validation**: Verify contributors belong to specified team prefix
+- **Metric Consistency**: Ensure all calculations use consistent data sets"""
+    
+    return ""
