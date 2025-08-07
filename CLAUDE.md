@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with the MCP Tools proje
 
 ## Project Information
 - **Name**: MCP Tools Server
-- **Version**: 2.0.0
+- **Version**: 2.0.1
 - **Type**: Python FastMCP Server (Modular Architecture)
 - **Transport**: MCP 2025-03-26 HTTP Streaming (FastMCP)
 - **Port**: 8002 (default)
@@ -129,8 +129,11 @@ curl -X POST http://localhost:8002/mcp \
 7. **quarter_over_quarter_analysis**: Analyze team performance trends and size changes across multiple quarters
 8. **personal_quarterly_report**: Generate individual contributor performance report for a single quarter
 9. **personal_quarter_over_quarter**: Analyze personal performance trends and growth across multiple quarters
-10. **echo**: Simple echo for testing
-11. **get_system_info**: System information
+10. **epic_status_report**: Generate comprehensive epic status reports with sub-task analysis and progress tracking
+11. **setup_prerequisites**: Validate and setup all prerequisites required by MCP Tools
+12. **check_tool_requirements**: Check specific prerequisites for a given MCP tool
+13. **echo**: Simple echo for testing
+14. **get_system_info**: System information
 
 ## Reporting Features
 

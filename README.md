@@ -29,7 +29,7 @@ A production-ready Model Context Protocol (MCP) server built with FastMCP Python
 - **🔐 Shell Authentication**: OAuth-compatible authentication for headless/containerized environments
 - **📊 External Context**: Configurable context files for domain-specific analysis patterns
 
-## Tools Available (12 Core Tools)
+## Tools Available (14 Core Tools)
 
 ### 1. PR Violations (`pr_violations`)
 **Architecture**: Instruction-based orchestration (does NOT execute GitHub commands directly)
@@ -140,7 +140,37 @@ Analyzes personal performance trends and growth across multiple quarters by retu
 - **Features**: Personal velocity trends, skill development progression, growth recommendations, user identification and authentication
 - **Privacy**: Individual contributor focus, personal development insights, career growth support
 
-### 10-12. System Tools
+### 10. Epic Status Report (`epic_status_report`)
+**Architecture**: Instruction-based orchestration (does NOT execute API calls directly)
+
+Generates comprehensive epic status reports with sub-task analysis, progress tracking, and assignee action items by returning structured instructions for Claude Code to execute.
+
+- **Input**: Epic ticket ID (e.g., "SI-1234"), optional description for context
+- **Output**: Detailed JIRA API commands for epic and sub-task analysis with comprehensive reporting format for Claude Code execution
+- **Features**: Epic progress tracking, sub-task completion analysis, assignee workload distribution, blockers identification, timeline analysis
+- **Analysis**: Epic overview, sub-task breakdown, assignee action items, progress metrics, completion estimates
+
+### 11. Setup Prerequisites (`setup_prerequisites`)
+**Architecture**: Direct execution for validation and setup
+
+Validates and sets up all prerequisites required by MCP Tools for proper operation.
+
+- **Input**: No parameters required
+- **Output**: Comprehensive validation results with setup instructions for missing dependencies
+- **Features**: GitHub CLI authentication check, JIRA access validation, required tool availability, environment configuration
+- **Validation**: All external dependencies needed by other MCP tools for proper execution
+
+### 12. Check Tool Requirements (`check_tool_requirements`)
+**Architecture**: Direct execution for specific tool validation
+
+Checks specific prerequisites for a given MCP tool to ensure it can execute successfully.
+
+- **Input**: Tool name (e.g., "pr_violations", "quarterly_team_report")
+- **Output**: Tool-specific validation results with detailed requirements and status
+- **Features**: Tool-specific dependency checking, configuration validation, authentication requirements
+- **Validation**: Targeted prerequisite checking for individual tool execution
+
+### 13-14. System Tools
 - **echo**: Simple echo for testing MCP connectivity and basic functionality
 - **get_system_info**: System information, server diagnostics, and process monitoring
 
