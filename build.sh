@@ -29,7 +29,7 @@ log_error() {
 # Get current version
 get_current_version() {
     if [[ -f "version.py" ]]; then
-        python3 version.py current 2>/dev/null | grep -oP 'Current version: \K.*' || echo "2.0.0"
+        python3 version.py current 2>/dev/null | sed -n 's/Current version: //p' | head -1 | tr -d ' \n' || echo "2.0.0"
     else
         echo "2.0.0"
     fi

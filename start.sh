@@ -18,14 +18,14 @@ DEFAULT_PORT="8002"
 # Get current version
 get_current_version() {
     if [[ -f "version.py" ]]; then
-        python3 version.py current 2>/dev/null | grep -oP 'Current version: \K.*' || echo "latest"
+        python3 version.py current 2>/dev/null | sed -n 's/Current version: //p' | head -1 | tr -d ' \n' || echo "latest"
     else
         echo "latest"
     fi
 }
 
-# Parse command line arguments
-VERSION="latest"
+# Parse command line arguments  
+VERSION=""  # Will auto-detect current release version
 PORT="$DEFAULT_PORT"
 
 while [[ $# -gt 0 ]]; do
@@ -45,18 +45,25 @@ MCP Tools Container Start Script
 Usage: $0 [options]
 
 Options:
-  --version VERSION   Use specific image version (default: auto-detect or latest)
+  --version VERSION   Use specific release image version (default: auto-detect current release)
   --port PORT        Host port for MCP Tools (default: $DEFAULT_PORT)
   --help, -h         Show this help message
 
 Examples:
-  $0                     # Start with auto-detected version
-  $0 --version 2.1.0     # Start with specific version  
+  $0                     # Start with current release version (recommended)
+  $0 --version 2.1.0     # Start with specific release version  
   $0 --port 8003         # Start on different port
 
+Build Management:
+  Use ./build.sh to create release images:
+  - ./build.sh                    # Build current version
+  - ./build.sh --version patch    # Bump patch and build
+  - ./build.sh --version minor    # Bump minor and build
+
 Notes:
-  - Automatically detects version from version.py if available
-  - Uses semantic versioning for container images
+  - Only starts existing release images - does NOT auto-build
+  - Auto-detects current release version from version.py
+  - Use semantic versioning tags (not 'latest') for production
   - Prefers podman over docker for container management
 EOF
             exit 0
@@ -68,15 +75,18 @@ EOF
     esac
 done
 
-# Auto-detect version if using default
-if [[ "$VERSION" == "latest" ]]; then
+# Auto-detect current release version if not specified
+if [[ -z "$VERSION" ]]; then
     VERSION=$(get_current_version)
     if [[ "$VERSION" != "latest" ]]; then
-        echo -e "${BLUE}🔍 Auto-detected version: ${VERSION}${NC}"
+        echo -e "${BLUE}🔍 Auto-detected release version: ${VERSION}${NC}"
+    else
+        echo -e "${YELLOW}⚠️  No release version found, falling back to latest${NC}"
+        VERSION="latest"
     fi
 fi
 
-IMAGE_NAME="mcp-tools:${VERSION}"
+IMAGE_NAME="localhost/mcp-tools:${VERSION}"
 
 echo -e "${BLUE}🚀 Starting MCP Tools Server${NC}"
 echo -e "${BLUE}Container: ${CONTAINER_NAME}${NC}"
@@ -99,10 +109,18 @@ if lsof -Pi :${PORT} -sTCP:LISTEN -t >/dev/null 2>&1; then
     exit 1
 fi
 
-# Build image if it doesn't exist
-if ! podman images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${IMAGE_NAME}$"; then
-    echo -e "${YELLOW}📦 Building ${IMAGE_NAME}...${NC}"
-    podman build -t "${IMAGE_NAME}" .
+# Check if release image exists - do NOT auto-build
+if ! podman images --format "{{.Repository}}:{{.Tag}}" | grep -q "localhost/mcp-tools:${VERSION}$"; then
+    echo -e "${RED}❌ Release image ${IMAGE_NAME} not found${NC}"
+    echo -e "${BLUE}Available mcp-tools images:${NC}"
+    podman images | grep mcp-tools || echo "  No mcp-tools images found"
+    echo ""
+    echo -e "${BLUE}To build the release image:${NC}"
+    echo "  ./build.sh                    # Build current version"
+    echo "  ./build.sh --version patch    # Bump patch version and build"
+    echo "  ./build.sh --version minor    # Bump minor version and build"
+    echo ""
+    exit 1
 fi
 
 # Start container

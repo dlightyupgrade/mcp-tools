@@ -18,7 +18,7 @@ def register_epic_status_tool(mcp: FastMCP):
     """Register the epic_status tool with the FastMCP server"""
     
     @mcp.tool
-    def epic_status_report(epic_id: str, focus: str = "status_report") -> Dict[str, Any]:
+    def epic_status_report(epic_id: str, focus: str = "status_report", analyze_tech_spec: bool = False) -> Dict[str, Any]:
         """
         Generate comprehensive epic status report with sub-task analysis.
         
@@ -37,6 +37,7 @@ def register_epic_status_tool(mcp: FastMCP):
         - "lagging_items" - Identify at-risk tickets needing attention
         - "team_communication" - Generate team lead summary
         - "assignee_actions" - Create ping list and action items
+        - "tech_spec_gaps" - Analyze tickets vs technical specifications for coverage gaps
         
         **What this tool does:**
         Analyzes epic and all sub-tasks to provide:
@@ -54,45 +55,63 @@ def register_epic_status_tool(mcp: FastMCP):
         - Sprint planning and risk assessment
         - Stakeholder communication
         
+        **Optional Analysis Features:**
+        - analyze_tech_spec: Compare tickets against technical specification for coverage gaps
+        
         Args:
             epic_id: JIRA epic ticket ID (e.g., "SI-9038", "PROJ-123")
             focus: Analysis focus area for targeted reporting
+            analyze_tech_spec: When True, includes technical specification gap analysis
             
         Returns:
             Comprehensive epic status analysis with actionable insights
         """
         
         try:
-            logger.info(f"Generating epic status report for {epic_id} with focus: {focus}")
+            logger.info(f"Generating epic status report for {epic_id} with focus: {focus}, tech_spec: {analyze_tech_spec}")
+            
+            # Base processing steps
+            processing_steps = [
+                "Extract epic details and metadata",
+                "Gather all sub-tasks and stories under epic", 
+                "Analyze sub-task status and progress",
+                "Identify current sprint items",
+                "Detect lagging and at-risk tickets",
+                "Calculate progress metrics",
+                "Generate assignee action items",
+                "Create team communication summary"
+            ]
+            
+            # Add optional tech spec analysis
+            if analyze_tech_spec or focus == "tech_spec_gaps":
+                processing_steps.extend([
+                    "Locate and extract technical specification document",
+                    "Map specification requirements to ticket implementation",
+                    "Identify coverage gaps and missing tickets",
+                    "Generate recommendations for spec alignment"
+                ])
             
             # Create instructions for Claude Code to execute the analysis
             instructions = {
                 "tool_name": "epic_status_report",
                 "epic_id": epic_id,
                 "focus": focus,
+                "analyze_tech_spec": analyze_tech_spec,
                 "analysis_type": "comprehensive_epic_status",
-                "processing_steps": [
-                    "Extract epic details and metadata",
-                    "Gather all sub-tasks and stories under epic", 
-                    "Analyze sub-task status and progress",
-                    "Identify current sprint items",
-                    "Detect lagging and at-risk tickets",
-                    "Calculate progress metrics",
-                    "Generate assignee action items",
-                    "Create team communication summary"
-                ],
-                "output_sections": _get_output_sections(focus),
+                "processing_steps": processing_steps,
+                "output_sections": _get_output_sections(focus, analyze_tech_spec),
                 "jira_queries": _get_jira_queries(epic_id),
                 "analysis_criteria": _get_analysis_criteria(),
-                "claude_processing_instructions": _get_processing_instructions(epic_id, focus)
+                "claude_processing_instructions": _get_processing_instructions(epic_id, focus, analyze_tech_spec)
             }
             
             return {
                 "success": True,
                 "epic_id": epic_id,
                 "focus": focus,
+                "analyze_tech_spec": analyze_tech_spec,
                 "instructions": instructions,
-                "message": f"Epic status analysis instructions generated for {epic_id}",
+                "message": f"Epic status analysis instructions generated for {epic_id}" + (" with tech spec analysis" if analyze_tech_spec else ""),
                 "next_step": "Execute analysis using Atlassian MCP tools and JIRA data"
             }
             
@@ -106,7 +125,7 @@ def register_epic_status_tool(mcp: FastMCP):
             }
 
 
-def _get_output_sections(focus: str) -> Dict[str, Any]:
+def _get_output_sections(focus: str, analyze_tech_spec: bool = False) -> Dict[str, Any]:
     """Define output sections based on focus area"""
     
     base_sections = {
@@ -140,12 +159,23 @@ def _get_output_sections(focus: str) -> Dict[str, Any]:
         }
     }
     
+    # Add tech spec analysis section when requested
+    if analyze_tech_spec or focus == "tech_spec_gaps":
+        base_sections["tech_spec_analysis"] = {
+            "spec_document": "Technical specification document reference",
+            "requirement_mapping": "Map spec requirements to tickets",
+            "coverage_gaps": "Missing tickets or incomplete coverage",
+            "implementation_variance": "Tickets that deviate from spec",
+            "recommendations": "Suggested tickets to close gaps"
+        }
+    
     # Focus-specific section filtering
     focus_sections = {
         "current_sprint": ["executive_summary", "current_sprint_progress"],
         "lagging_items": ["items_needing_attention", "action_items"],
         "team_communication": ["executive_summary", "action_items"],
-        "assignee_actions": ["action_items", "items_needing_attention"]
+        "assignee_actions": ["action_items", "items_needing_attention"],
+        "tech_spec_gaps": ["tech_spec_analysis", "remaining_work", "action_items"]
     }
     
     if focus in focus_sections:
@@ -200,14 +230,30 @@ def _get_analysis_criteria() -> Dict[str, Any]:
     }
 
 
-def _get_processing_instructions(epic_id: str, focus: str) -> str:
+def _get_processing_instructions(epic_id: str, focus: str, analyze_tech_spec: bool = False) -> str:
     """Generate Claude processing instructions"""
     
+    tech_spec_instructions = ""
+    if analyze_tech_spec or focus == "tech_spec_gaps":
+        tech_spec_instructions = f"""
+### Tech Spec Analysis (Optional - Requested)
+4. **Extract Technical Specification**: 
+   - Look for design documents linked to {epic_id}
+   - Check Confluence pages referenced in epic description
+   - Extract requirements, features, and acceptance criteria
+5. **Gap Analysis**:
+   - Map spec requirements to existing tickets
+   - Identify missing implementation tickets
+   - Flag tickets that deviate from spec
+   - Recommend new tickets for uncovered requirements
+"""
+
     return f"""
 ## Epic Status Report Processing Instructions
 
 **Epic ID**: {epic_id}
 **Focus**: {focus}
+**Tech Spec Analysis**: {"Enabled" if analyze_tech_spec else "Disabled"}
 
 ### Step 1: Data Extraction
 Use Atlassian MCP tools to gather:
@@ -222,6 +268,8 @@ Use Atlassian MCP tools to gather:
 - **Stale Detection**: Last update > 3 days ago
 - **Risk Assessment**: Overdue, blocked, unassigned tickets
 - **Velocity Estimation**: Based on recent completion rate
+
+{tech_spec_instructions}
 
 ### Step 3: Report Generation
 Create structured report with sections based on focus area:
@@ -248,6 +296,16 @@ Create structured report with sections based on focus area:
 
 ## Remaining Work
 [Backlog breakdown by category]
+
+## Tech Spec Analysis (if analyze_tech_spec=True)
+### Requirements Coverage
+- **Covered**: [Requirements with corresponding tickets]
+- **Gaps**: [Missing tickets for spec requirements]  
+- **Deviations**: [Tickets that don't match spec]
+
+### Recommendations
+- **New Tickets Needed**: [Specific tickets to create]
+- **Spec Updates**: [Areas where spec may need revision]
 ```
 
 ### Step 4: Actionable Output
