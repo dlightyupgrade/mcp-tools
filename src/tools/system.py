@@ -2,7 +2,19 @@
 """
 System Tools
 
-Basic system utilities for MCP server testing and diagnostics.
+Comprehensive system utilities for MCP server testing, diagnostics, and health monitoring.
+
+**Natural Language Triggers:**
+- "test mcp" / "check mcp server" - Basic connectivity testing and server verification
+- "echo [message]" - Simple echo test for MCP communication validation  
+- "system info" / "server status" - Comprehensive system and server diagnostics
+- "health check" / "system diagnostics" - System performance and resource monitoring
+- "verify mcp tools working" - End-to-end functionality verification
+- "mcp server diagnostics" - Complete server health assessment
+
+**Perfect for:** Initial MCP setup verification, troubleshooting connectivity issues, 
+monitoring server health, debugging communication problems, system performance analysis, 
+confirming server responsiveness and proper tool registration.
 """
 
 import logging

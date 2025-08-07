@@ -35,6 +35,26 @@ def register_quarter_over_quarter_tool(mcp: FastMCP):
         """
         Generate comprehensive quarter-over-quarter team performance analysis with team size tracking - INSTRUCTIONS ONLY.
         
+        **Natural Language Triggers:**
+        - "quarter over quarter analysis for [team] [period]"
+        - "team performance trends [team] [year] vs [year]" 
+        - "QoQ analysis for [team] team covering [period]"
+        - "compare SI team performance 2024 vs 2023"
+        - "PLAT team quarter-over-quarter trends 2023-2025"
+        - "analyze team growth patterns [team] [multi-year period]"
+        - "team velocity changes over multiple quarters"
+        - "retention analysis [team] team [period]"
+        
+        **What this tool does:**
+        Returns comprehensive instructions for multi-quarter team performance trend analysis 
+        including team size evolution, velocity patterns, retention rates, and comparative 
+        metrics across time periods. Uses real JIRA MCP and GitHub CLI commands - does NOT 
+        execute analysis directly.
+        
+        **Perfect for:** Team growth analysis, velocity trend tracking, retention monitoring, 
+        multi-quarter planning, performance pattern identification, team stability assessment, 
+        strategic resource planning, comparative quarterly reviews.
+        
         Provides detailed step-by-step instructions for Claude Code to perform comprehensive 
         multi-quarter team performance trend analysis including team size evolution, velocity
         patterns, and comparative metrics using actual API calls. Does NOT execute analysis 

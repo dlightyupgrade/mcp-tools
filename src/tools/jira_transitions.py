@@ -24,20 +24,37 @@ def register_jira_transitions_tool(mcp: FastMCP):
         """
         Calculate the transition path between two JIRA statuses using embedded workflow knowledge.
         
-        Supports preset workflow shortcuts for common development patterns:
-        - "start"|"dev" → Open to In Development (3-step preset)
-        - "review"|"pr" → In Development to Ready For Codereview (1-step preset)
-        - "qa"|"test" → Ready For Codereview to Ready for Validation (1-step preset)
-        - "done" → In Validation to Resolved (1-step preset)
+        **Natural Language Triggers:**
+        - "get transitions from [status] to [status]" - Explicit path calculation
+        - "transition path [from] to [to]" - Path finding request
+        - "jira workflow from [status]" - Available transitions from status
+        - "how to get from [status] to [status]" - Step-by-step path query
+        - "show jira transitions for [status]" - Status transition options
+        - "workflow shortcuts" - Display available preset commands
+        - "jira path [from] [to]" - Quick path lookup
+        - "transition options from [status]" - Available next steps
         
-        Natural language triggers: "get transitions", "transition path", "jira workflow"
+        **Preset Workflow Shortcuts (Development Lifecycle):**
+        - "start"/"dev" → Open to In Development (3-step: Open→Definition→Ready for Eng→In Development)
+        - "review"/"pr" → In Development to Ready For Codereview (1-step: direct transition)
+        - "qa"/"test" → Ready For Codereview to Ready for Validation (1-step: direct transition)
+        - "done" → In Validation to Resolved (1-step: direct transition)
+        
+        **What this tool does:**
+        Intelligent JIRA workflow navigation using embedded workflow knowledge. Calculates optimal 
+        transition paths between any two JIRA statuses, supporting both direct single-step transitions 
+        and complex multi-step paths. Includes preset shortcuts for common development lifecycle patterns 
+        and provides exact Atlassian MCP commands for execution.
+        
+        **Perfect for:** JIRA workflow automation, development lifecycle management, status transition 
+        planning, workflow optimization, sprint management, eliminating manual JIRA navigation complexity.
         
         Args:
             from_status: Current JIRA status OR preset shortcut ("start", "dev", "review", "pr", "qa", "test", "done")
-            to_status: Target JIRA status (optional if using preset shortcuts)
+            to_status: Target JIRA status (optional if using preset shortcuts, required otherwise)
             
         Returns:
-            Dictionary with transition path, commands, or error information
+            Comprehensive transition path with step-by-step instructions and exact MCP commands
         """
         logger.info(f"Calculating JIRA transition path: {from_status} -> {to_status}")
         

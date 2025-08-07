@@ -24,18 +24,38 @@ def register_jira_transition_tool(mcp: FastMCP):
         """
         Automatically perform JIRA ticket transitions using Atlassian MCP.
         
-        Natural language triggers: "jt", "jira transition", "move jira ticket to", 
-        "transition ticket to", "change ticket status", "set jira status"
+        **Natural Language Triggers:**
+        - "jt [ticket] [state]" (e.g., "jt SI-1234 dev") - Quick transition shortcut
+        - "move [ticket] to [state]" - Natural language transition request
+        - "transition [ticket] to development" - Formal transition command
+        - "set [ticket] status to ready for review" - Status change request
+        - "jira transition [ticket] [state]" - Direct tool invocation
+        - "change [ticket] to in progress" - State change request
+        - "[ticket] to done" - Simple completion command
+        - "start working on [ticket]" - Auto-detects "start" transition
+        - "begin development on [ticket]" - Development start trigger
+        - "mark [ticket] as ready for qa" - QA preparation trigger
+        - "complete [ticket]" - Completion trigger (resolves to "done")
         
-        Workflow:
-        1. Gets current ticket status via Atlassian MCP
-        2. Resolves target state aliases (e.g., 'dev' -> 'In Development')  
-        3. Gets available transitions from JIRA
-        4. Executes the appropriate transition
-        5. Verifies final status
+        **State Aliases Supported:**
+        - "dev"/"start"/"begin" → In Development (development work begins)
+        - "review"/"pr"/"codereview" → Ready For Codereview (code review phase)
+        - "qa"/"test"/"validation" → Ready for Validation (testing phase)
+        - "done"/"resolved"/"complete" → Resolved (task completion)
+        - "blocked"/"block" → Blocked (work impediment)
+        - "open"/"reopen" → Open (initial or reopened state)
+        
+        **What this tool does:**
+        Executes intelligent JIRA workflow transitions by analyzing current ticket status, resolving 
+        natural language state aliases to proper JIRA statuses, calculating optimal transition paths, 
+        and providing complete Atlassian MCP commands for execution. Includes embedded workflow knowledge 
+        for seamless automation.
+        
+        **Perfect for:** Daily workflow automation, ticket lifecycle management, development status tracking, 
+        sprint management, team coordination, eliminating manual JIRA navigation.
         
         Args:
-            ticket_id: JIRA ticket ID (e.g., SI-8748, PROJ-123)
+            ticket_id: JIRA ticket ID (SI-8748, PROJ-123, TEAM-456, etc.)
             target_state: Target JIRA status (full name or alias like 'dev', 'qa', 'done')
             description: Optional description or context for the transition
             current_status: Current JIRA status (if provided, returns specific transition path)

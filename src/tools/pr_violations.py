@@ -26,16 +26,28 @@ def register_pr_violations_tool(mcp: FastMCP):
         """
         Analyze PR violations, open review threads, CI failures, and merge conflicts - INSTRUCTIONS ONLY.
         
-        Provides detailed step-by-step instructions for Claude Code to perform comprehensive PR violations
-        analysis including open review threads, CI status, merge conflicts, and actionable solutions.
-        Does NOT execute analysis directly - returns structured instructions for external execution.
+        **Natural Language Triggers:**
+        - "check pr violations for [PR_URL]"
+        - "analyze pr problems in [PR_URL]" 
+        - "what's wrong with this PR [PR_URL]"
+        - "pr violations analysis [PR_URL]"
+        - "check review threads in [PR_URL]"
+        - "find pr issues [PR_URL]"
+        
+        **What this tool does:**
+        Provides comprehensive step-by-step instructions for analyzing PR health including open review 
+        threads, CI failures, merge conflicts, and actionable solutions. Returns detailed GitHub API 
+        commands for Claude Code to execute - does NOT run analysis directly.
+        
+        **Perfect for:** PR health checks, code review cleanup, merge readiness assessment, 
+        identifying blocking issues before merge.
         
         Args:
-            pr_url: GitHub PR URL to analyze
-            description: Optional description of analysis focus
+            pr_url: GitHub PR URL to analyze (e.g., https://github.com/owner/repo/pull/123)
+            description: Optional focus area (e.g., "security review", "merge conflicts")
             
         Returns:
-            Dictionary containing detailed processing instructions for Claude Code execution
+            Comprehensive instructions for Claude Code to perform PR violations analysis
         """
         logger.info(f"pr_violations tool called for: {pr_url}")
         

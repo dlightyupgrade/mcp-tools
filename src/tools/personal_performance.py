@@ -37,6 +37,26 @@ def register_personal_performance_tools(mcp: FastMCP):
         """
         Generate personal performance report for a single quarter - INSTRUCTIONS ONLY.
 
+        **Natural Language Triggers:**
+        - "personal performance report Q[#] [year]"
+        - "my quarterly report [team] Q[#] [year]"
+        - "individual performance analysis Q[#] [year]"
+        - "personal contribution report SI Q2 2025"
+        - "my development report for Q3 2024"
+        - "generate personal quarterly performance [team] [quarter] [year]"
+        - "how did I perform this quarter?"
+        - "personal growth analysis [quarter]"
+
+        **What this tool does:**
+        Returns comprehensive instructions for analyzing your personal contributions, productivity 
+        patterns, and technical focus areas for a specific quarter. Includes personal development 
+        guidance and growth recommendations. Uses real JIRA MCP and GitHub CLI commands - does NOT 
+        execute analysis directly.
+
+        **Perfect for:** Personal performance reviews, self-assessment, career development planning,
+        skill development tracking, productivity analysis, quarterly self-reflection, goal setting,
+        individual growth monitoring, professional development planning.
+
         Analyzes your individual contributions, productivity patterns, and technical focus
         areas for the specified quarter with personal insights and development guidance
         by returning detailed instructions for Claude Code execution.
@@ -327,6 +347,26 @@ Based on personal JIRA tickets and GitHub commits:
     ) -> Dict[str, Any]:
         """
         Generate personal quarter-over-quarter performance analysis - INSTRUCTIONS ONLY.
+
+        **Natural Language Triggers:**
+        - "personal quarter over quarter analysis [period]"
+        - "my performance trends [team] [period]"
+        - "personal growth analysis over multiple quarters"
+        - "track my development [team] [year] vs [year]"
+        - "personal QoQ analysis [period]"
+        - "how have I improved over [period]?"
+        - "my productivity trends across quarters"
+        - "personal skill development timeline [period]"
+
+        **What this tool does:**
+        Returns comprehensive instructions for tracking your individual performance trends,
+        growth patterns, and skill development across multiple quarters. Includes personalized
+        insights and development recommendations based on your historical contribution patterns.
+        Uses real JIRA MCP and GitHub CLI commands - does NOT execute analysis directly.
+
+        **Perfect for:** Personal development tracking, career growth analysis, skill progression
+        monitoring, long-term goal assessment, learning velocity analysis, professional development
+        planning, performance trend identification, personal productivity optimization.
 
         Tracks your individual performance trends, growth patterns, and skill development
         across multiple quarters with personalized insights and recommendations by

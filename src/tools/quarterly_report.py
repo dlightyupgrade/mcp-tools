@@ -36,19 +36,30 @@ def register_quarterly_team_report_tool(mcp: FastMCP):
         """
         Generate comprehensive quarterly team performance report with anonymized metrics - INSTRUCTIONS ONLY.
         
-        Provides detailed step-by-step instructions for Claude Code to perform comprehensive team
-        performance analysis including JIRA tickets, GitHub commits, technical focus areas, and
-        development velocity using actual API calls. Does NOT execute analysis directly - returns
-        structured instructions for external execution.
+        **Natural Language Triggers:**
+        - "quarterly team report for [team] Q[#] [year]" 
+        - "generate [team] quarterly report [year] Q[#]"
+        - "team performance analysis [team] [quarter] [year]"
+        - "SI quarterly report Q2 2025"
+        - "PLAT team performance Q1 2024" 
+        - "create quarterly report for CORE team Q3 2025"
+        
+        **What this tool does:**
+        Returns comprehensive instructions for analyzing team performance including JIRA ticket 
+        completion, GitHub commits, technical focus areas, and development velocity. Uses real 
+        JIRA MCP and GitHub CLI commands - does NOT execute analysis directly.
+        
+        **Perfect for:** Team retrospectives, performance reviews, quarterly planning, 
+        velocity tracking, technical achievement summaries, management reporting.
         
         Args:
-            team_prefix: Team/project prefix (e.g., "SI", "PLAT", "CORE")
-            year: Year for the quarter (e.g., 2025)
-            quarter: Quarter number (1-4)
-            description: Optional description of analysis focus
+            team_prefix: Team/project prefix ("SI", "PLAT", "CORE", "INFRA", etc.)
+            year: Year for the quarter (2020-2030)
+            quarter: Quarter number (1-4: Q1=Jan-Mar, Q2=Apr-Jun, Q3=Jul-Sep, Q4=Oct-Dec)
+            description: Optional focus ("performance analysis", "technical achievements", etc.)
             
         Returns:
-            Dictionary containing detailed processing instructions for Claude Code execution
+            Comprehensive team analysis instructions with JIRA MCP and GitHub CLI commands
         """
         logger.info(f"Quarterly team report requested: {team_prefix} Q{quarter} {year}")
         

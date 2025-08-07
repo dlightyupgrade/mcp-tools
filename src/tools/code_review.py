@@ -23,19 +23,32 @@ def register_code_review_tool(mcp: FastMCP):
     @mcp.tool
     def code_review(pr_url: str, focus: str = "", max_diff_lines: int = 2000) -> Dict[str, Any]:
         """
-        Perform comprehensive code quality review of pull requests - ANALYSIS ONLY.
+        Comprehensive code quality review of pull requests - ANALYSIS INSTRUCTIONS ONLY.
         
-        Provides step-by-step instructions for external agents to analyze code quality, security, 
-        performance, and maintainability aspects. Does NOT make changes - only reviews and provides 
-        insights. Emphasizes deep thinking about code simplification and standards compliance.
+        **Natural Language Triggers:**
+        - "code review [PR_URL]"
+        - "review this PR [PR_URL]" 
+        - "analyze code quality in [PR_URL]"
+        - "check code standards [PR_URL]"
+        - "security review [PR_URL]"
+        - "performance review [PR_URL]"
+        - "review pr for [focus] [PR_URL]"
+        
+        **What this tool does:**
+        Returns comprehensive instructions for analyzing code quality, security, performance, and 
+        maintainability. Focuses on deep code analysis, standards compliance, and identifying 
+        improvement opportunities. Does NOT execute review - provides detailed analysis framework.
+        
+        **Perfect for:** Code quality assessment, security audits, performance optimization, 
+        standards compliance checking, mentoring feedback, pre-merge review.
         
         Args:
-            pr_url: GitHub PR URL to review
-            focus: Optional focus area (e.g., "security", "performance", "tests")
-            max_diff_lines: Maximum diff lines to include (default: 2000)
+            pr_url: GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)
+            focus: Optional focus area ("security", "performance", "tests", "maintainability")
+            max_diff_lines: Maximum diff lines to analyze (default: 2000)
             
         Returns:
-            Dictionary containing detailed instructions for comprehensive analysis
+            Detailed instructions for Claude Code to perform comprehensive code review
         """
         logger.info(f"code_review tool called for: {pr_url}")
         
