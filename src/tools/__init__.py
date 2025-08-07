@@ -3,12 +3,15 @@
 MCP Tools Registry
 
 Dynamic tool loader that registers all available tools with the FastMCP server.
+Organized into two main categories: Reports (analytics) and Work Tools (operations).
 """
 
 import logging
 from typing import List, Dict, Any
 
 from fastmcp import FastMCP
+from .reports import register_all_report_tools, get_report_tool_descriptions
+from .work import register_all_work_tools, get_work_tool_descriptions
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +20,9 @@ def register_all_tools(mcp: FastMCP) -> Dict[str, Any]:
     """
     Register all available tools with the FastMCP server.
     
-    This function dynamically imports and registers all tool modules,
-    providing a centralized way to manage tool registration.
+    Tools are organized into two main categories:
+    - Reports: Analytics and performance analysis tools
+    - Work Tools: Operational and development tools
     
     Args:
         mcp: FastMCP server instance
@@ -26,93 +30,45 @@ def register_all_tools(mcp: FastMCP) -> Dict[str, Any]:
     Returns:
         Dictionary with registration results and tool information
     """
-    registered_tools = []
-    registration_errors = []
+    logger.info("Starting modular tool registration process...")
     
-    # List of tool modules to register
-    tool_modules = [
-        ("pr_violations", "register_pr_violations_tool"),
-        ("code_review", "register_code_review_tool"), 
-        ("tech_design_review", "register_tech_design_review_tool"),
-        ("jira_transition", "register_jira_transition_tool"),
-        ("jira_transitions", "register_jira_transitions_tool"),
-        ("quarterly_report", "register_quarterly_report_tool"),
-        ("quarter_over_quarter", "register_quarter_over_quarter_tool"),
-        ("personal_performance", "register_personal_performance_tools"),
-        ("system", "register_system_tools")
-    ]
+    # Register report tools
+    report_results = register_all_report_tools(mcp)
     
-    logger.info("Starting tool registration process...")
+    # Register work tools  
+    work_results = register_all_work_tools(mcp)
     
-    for module_name, register_function_name in tool_modules:
-        try:
-            # Dynamic import of tool module
-            module = __import__(f"tools.{module_name}", fromlist=[register_function_name])
-            
-            # Get the registration function
-            register_function = getattr(module, register_function_name)
-            
-            # Call the registration function
-            register_function(mcp)
-            
-            registered_tools.append({
-                "module": module_name,
-                "register_function": register_function_name,
-                "status": "success"
-            })
-            
-            logger.info(f"Successfully registered tools from module: {module_name}")
-            
-        except ImportError as e:
-            error_info = {
-                "module": module_name,
-                "register_function": register_function_name,
-                "status": "import_error",
-                "error": str(e)
-            }
-            registration_errors.append(error_info)
-            logger.error(f"Failed to import module {module_name}: {e}")
-            
-        except AttributeError as e:
-            error_info = {
-                "module": module_name,
-                "register_function": register_function_name,
-                "status": "function_not_found",
-                "error": str(e)
-            }
-            registration_errors.append(error_info)
-            logger.error(f"Function {register_function_name} not found in module {module_name}: {e}")
-            
-        except Exception as e:
-            error_info = {
-                "module": module_name,
-                "register_function": register_function_name,
-                "status": "registration_error",
-                "error": str(e)
-            }
-            registration_errors.append(error_info)
-            logger.error(f"Error registering tools from module {module_name}: {e}")
+    # Combine results
+    total_successful = report_results["successful_registrations"] + work_results["successful_registrations"]
+    total_failed = report_results["failed_registrations"] + work_results["failed_registrations"]
+    total_modules = total_successful + total_failed
     
-    # Summary
-    total_modules = len(tool_modules)
-    successful_registrations = len(registered_tools)
-    failed_registrations = len(registration_errors)
+    all_registered_tools = report_results["registered_tools"] + work_results["registered_tools"]
+    all_errors = report_results["registration_errors"] + work_results["registration_errors"]
     
-    logger.info(f"Tool registration complete: {successful_registrations}/{total_modules} modules successful")
+    logger.info(f"Modular tool registration complete: {total_successful}/{total_modules} modules successful")
+    logger.info(f"  - Reports: {report_results['successful_registrations']} tools")
+    logger.info(f"  - Work Tools: {work_results['successful_registrations']} tools")
     
-    if registration_errors:
-        logger.warning(f"Registration errors occurred in {failed_registrations} modules")
-        for error in registration_errors:
+    if all_errors:
+        logger.warning(f"Registration errors occurred in {total_failed} modules")
+        for error in all_errors:
             logger.warning(f"  - {error['module']}: {error['status']} - {error['error']}")
     
     return {
+        "architecture": "modular",
+        "categories": {
+            "reports": report_results,
+            "work": work_results
+        },
         "total_modules": total_modules,
-        "successful_registrations": successful_registrations,
-        "failed_registrations": failed_registrations,
-        "registered_tools": registered_tools,
-        "registration_errors": registration_errors,
+        "successful_registrations": total_successful,
+        "failed_registrations": total_failed,
+        "registered_tools": all_registered_tools,
+        "registration_errors": all_errors,
         "available_tools": get_tool_list(),
-        "status": "completed" if failed_registrations == 0 else "completed_with_errors"
+        "tool_descriptions": get_all_tool_descriptions(),
+        "status": "completed" if total_failed == 0 else "completed_with_errors"
     }
 
 
@@ -133,28 +89,21 @@ def get_tool_list() -> List[str]:
         "quarter_over_quarter_analysis",
         "personal_quarterly_report",
         "personal_quarter_over_quarter",
+        "setup_prerequisites",
+        "check_tool_requirements",
         "echo",
         "get_system_info"
     ]
 
 
-def get_tool_descriptions() -> Dict[str, str]:
+def get_all_tool_descriptions() -> Dict[str, str]:
     """
-    Get descriptions of all available tools.
+    Get descriptions of all available tools from both categories.
     
     Returns:
         Dictionary mapping tool names to their descriptions
     """
-    return {
-        "pr_violations": "Analyze PR violations, open review threads, CI failures, and merge conflicts",
-        "code_review": "Perform comprehensive code quality review of pull requests",
-        "tech_design_review": "Comprehensive technical design document review with architecture, security, and implementation analysis",
-        "jira_transition": "Automatically perform JIRA ticket transitions using Atlassian MCP",
-        "get_jira_transitions": "Calculate transition paths between JIRA statuses with preset shortcuts",
-        "quarterly_team_report": "Generate comprehensive quarterly team performance reports with anonymized metrics",
-        "quarter_over_quarter_analysis": "Analyze team performance trends and size changes across multiple quarters",
-        "personal_quarterly_report": "Generate individual contributor performance report for a single quarter",
-        "personal_quarter_over_quarter": "Analyze personal performance trends and growth across multiple quarters",
-        "echo": "Echo text back to verify MCP connectivity",
-        "get_system_info": "Get comprehensive system information and server diagnostics"
-    }
+    descriptions = {}
+    descriptions.update(get_report_tool_descriptions())
+    descriptions.update(get_work_tool_descriptions())
+    return descriptions

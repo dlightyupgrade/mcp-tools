@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """
-Quarterly Team Performance Reporting Tool
+Quarterly Team Performance Reporting Tool with 3-Agent Coordination
 
-PREREQUISITES - MUST BE CONFIGURED BEFORE USE:
-• GitHub CLI: `brew install gh` + `gh auth login`
-• Atlassian MCP Server: Authentication and cloud ID configuration required
-• JIRA Access: Team must have access to JIRA project with appropriate permissions
-• JQ: `brew install jq` for JSON processing
+PREREQUISITES: Run `setup_prerequisites` tool to validate all required tools and services.
+This tool depends on GitHub CLI, Atlassian MCP, JIRA access, and command-line utilities.
 
 This tool generates comprehensive quarterly team performance reports with anonymized metrics,
-development velocity analysis, and technical achievement summaries by RETURNING INSTRUCTIONS
-for Claude Code to execute actual API calls rather than performing analysis directly.
+development velocity analysis, and technical achievement summaries using the proven 3-agent
+coordination system for enhanced JIRA→GitHub PR bridging and comprehensive analysis.
 """
 
 import logging
@@ -19,6 +16,7 @@ from typing import Dict, Any
 
 from fastmcp import FastMCP
 from .base import ToolBase, get_context_fallback
+from .coordinator import JiraGithubReportCoordinator
 
 logger = logging.getLogger(__name__)
 
@@ -105,13 +103,82 @@ def register_quarterly_team_report_tool(mcp: FastMCP):
             end_date = f"{year}-{end_month:02d}-{end_day:02d}"
             quarter_name = f"Q{quarter} {year}"
             
+            # Get team-specific customizations for 3-agent coordination
+            team_customizations = JiraGithubReportCoordinator.create_team_quarterly_customizations()
+            
+            # Generate 3-agent coordination instructions
+            subagent_1 = JiraGithubReportCoordinator.generate_base_subagent_1_instructions(
+                "team_quarterly",
+                team_prefix,
+                start_date,
+                end_date,
+                team_customizations["jira_query_customizer"]
+            )
+            
+            subagent_2 = JiraGithubReportCoordinator.generate_base_subagent_2_instructions(
+                "team_quarterly", 
+                team_prefix,
+                start_date,
+                end_date,
+                team_customizations["github_query_customizer"]
+            )
+            
+            # Custom analysis steps for team quarterly reports
+            team_analysis_steps = [
+                "## Team Data Synthesis",
+                "# Combine Subagent 1 JIRA analysis with Subagent 2 GitHub metrics",
+                "# Cross-reference team JIRA activity with GitHub repository contributions",
+                "# Calculate team-wide productivity and collaboration metrics",
+                "",
+                "## Enhanced Team Performance Metrics", 
+                "# Team productivity: JIRA tickets + GitHub PRs with proper attribution",
+                "# Collaboration indicators: Cross-repository work and code review patterns",
+                "# Technical focus: Team specialization areas from combined dataset",
+                "# Development velocity: Team throughput and delivery metrics",
+                "",
+                "## Team Attribution and Privacy",
+                "# Identify team member contributions while maintaining anonymization",
+                "# Generate team-level insights without individual performance data",
+                "# Calculate team velocity and productivity patterns",
+                "# Ensure privacy-compliant reporting with aggregate metrics only",
+                "",
+                "## Team Development Insights",
+                "# Generate team-level recommendations for improved productivity",
+                "# Identify team strengths and collaboration opportunities",
+                "# Suggest technical focus areas for enhanced team performance",
+                "# Create actionable team improvement strategies"
+            ]
+            
+            subagent_3 = JiraGithubReportCoordinator.generate_base_subagent_3_instructions(
+                "team_quarterly",
+                f"{team_prefix} Team Quarterly Report - {quarter_name}",
+                team_analysis_steps,
+                ["comprehensive_team_report", "team_attribution_analysis", "team_performance_recommendations", "team_improvement_opportunities"]
+            )
+            
+            # Generate comprehensive coordination instructions
+            coordination_instructions = JiraGithubReportCoordinator.generate_coordination_instructions(
+                "quarterly_team_report",
+                f"Team Quarterly Performance Report - {quarter_name}",
+                subagent_1,
+                subagent_2, 
+                subagent_3,
+                [
+                    "Subagent 1 discovers team JIRA activity and establishes team member identification",
+                    "Subagent 2 uses team data for comprehensive GitHub analysis with PR linking",
+                    "Subagent 3 synthesizes team data while maintaining anonymization requirements",
+                    "All subagents coordinate for team-level insights without individual attribution",
+                    "Enhanced team productivity analysis with cross-source validation"
+                ]
+            )
+            
             # Load external context for quarterly reporting
             context_content = ToolBase.load_external_context(
                 "/Users/dlighty/code/llm-context/QUARTERLY-REPORT-CONTEXT.md",
                 get_context_fallback("quarterly_report")
             )
             
-            # Return detailed analysis instructions
+            # Return detailed analysis instructions with 3-agent coordination
             quarterly_instructions = {
                 "tool_name": "quarterly_team_report",
                 "analysis_context": f"Quarterly Team Performance Report - {quarter_name}",
@@ -125,58 +192,43 @@ def register_quarterly_team_report_tool(mcp: FastMCP):
                 "description": description,
                 
                 "processing_instructions": {
-                    "overview": f"Generate comprehensive quarterly team performance report for {team_prefix} team covering {quarter_name}. Focus: {description or 'comprehensive team performance analysis with anonymized metrics'}.",
+                    "overview": f"Generate comprehensive quarterly team performance report for {team_prefix} team covering {quarter_name} using 3-subagent coordination system. Focus: {description or 'comprehensive team performance analysis with anonymized metrics and enhanced JIRA→GitHub PR bridging'}.",
                     
-                    "prerequisite_validation": [
-                        "Verify GitHub CLI authentication: `gh auth status`",
-                        "Verify Atlassian MCP server connection and cloud ID access",
-                        "Confirm JIRA project access for team prefix queries",
-                        "Ensure `jq` is available for JSON processing"
-                    ],
                     
-                    "data_collection_steps": [
-                        "## JIRA Data Collection",
-                        f"Execute: mcp__atlassian__searchJiraIssuesUsingJql(cloudId='credify.atlassian.net', jql='project = \"{team_prefix}\" AND created >= \"{start_date}\" AND created <= \"{end_date}\" ORDER BY created DESC', fields=['summary', 'description', 'status', 'issuetype', 'priority', 'created', 'assignee', 'components'], maxResults=250)",
-                        "",
-                        "## GitHub Data Collection", 
-                        "# Find repositories for team using GitHub search",
-                        f"Execute: gh search repos 'org:credify topic:{team_prefix.lower()} OR {team_prefix.lower()} in:name' --json name,url,defaultBranch",
-                        "# For each repository found, collect commit data:",
-                        f"Execute: gh api 'search/commits?q=author-date:{start_date}..{end_date}+org:credify+repo:REPO_NAME' --paginate",
-                        "# Alternative if repo-specific search fails:",
-                        f"Execute: gh api 'repos/credify/REPO_NAME/commits?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z' --paginate",
-                        "",
-                        "## Team Member Identification",
-                        "# Extract unique GitHub commit authors (anonymize in final report)",
-                        "# Cross-reference JIRA assignees with GitHub authors",
-                        "# Build contributor mapping while preserving privacy"
-                    ],
+                    "coordination_instructions": coordination_instructions,
                     
-                    "analysis_requirements": [
-                        "**JIRA Metrics Analysis:**",
-                        "- Total tickets completed in quarter",
-                        "- Issue type distribution (Story, Bug, Task, Epic, etc.)",
-                        "- Priority distribution (Critical, High, Medium, Low)",
-                        "- Average completion time by issue type",
-                        "- Sprint velocity trends (if sprint data available)",
+                    "enhanced_analysis_requirements": [
+                        "**Enhanced Team JIRA Analysis (Subagent 1):**",
+                        "- Total team tickets completed in quarter with PR link discovery",
+                        "- Team issue type distribution and technical focus areas",
+                        "- Team priority distribution and completion patterns",
+                        "- PR link extraction from descriptions and comments for attribution",
+                        "- Cross-reference team ticket completion with actual code delivery",
                         "",
-                        "**GitHub Metrics Analysis:**", 
-                        "- Total commits by team members",
-                        "- Active repository count",
-                        "- Lines of code changes (additions/deletions)",
-                        "- Pull request metrics (if accessible)",
-                        "- Repository activity patterns",
+                        "**Enhanced Team GitHub Analysis (Subagent 2):**", 
+                        "- Detailed team PR metrics using JIRA-discovered links",
+                        "- Team code contribution quality (review feedback, merge rates)", 
+                        "- Repository diversity and team contribution complexity evolution",
+                        "- Commit patterns within JIRA-linked PRs vs standalone team development",
+                        "- Team technical growth indicators from code change analysis",
                         "",
-                        "**Team Velocity Calculation:**",
-                        "- Tickets per contributor ratio",
-                        "- Commits per contributor ratio", 
-                        "- Cross-functional collaboration indicators",
-                        "- Technical focus area identification from ticket summaries",
+                        "**Cross-Reference Team Attribution Analysis (Subagent 3):**",
+                        "- Team JIRA ticket completion vs GitHub PR delivery alignment",
+                        "- Team work attribution accuracy and process improvement opportunities",
+                        "- Team productivity metrics with enhanced accuracy and anonymization",
+                        "- Team learning velocity based on technical complexity progression",
                         "",
-                        "**Privacy and Anonymization:**",
-                        "- Individual contributor names anonymized in final report",
-                        "- Aggregate metrics only (no individual performance data)",
-                        "- Focus on team patterns, not individual attribution"
+                        "**Team Performance Insights (Subagent 3):**",
+                        "- Team strength areas from consistent high-performance patterns",
+                        "- Team growth opportunities identified from contribution gap analysis", 
+                        "- Team technical skill development trajectory with evidence",
+                        "- Team collaboration and development recommendations based on data patterns",
+                        "",
+                        "**Privacy and Team Anonymization:**",
+                        "- Individual contributor names anonymized in final team report",
+                        "- Team-level aggregate metrics only (no individual performance data)",
+                        "- Focus on team patterns and collaboration, not individual attribution",
+                        "- Team insights while maintaining individual privacy requirements"
                     ],
                     
                     "required_output_format": f"""
@@ -281,20 +333,25 @@ Based on JIRA ticket summaries and GitHub commit messages:
                 
                 "external_context": context_content,
                 
-                "success_criteria": {
-                    "data_collection": "JIRA tickets and GitHub commits successfully retrieved for the specified quarter",
-                    "team_identification": "Team members identified through JIRA assignments and GitHub contributions",
-                    "metrics_calculation": "Productivity and velocity metrics calculated with appropriate anonymization",
-                    "technical_analysis": "Technical focus areas identified from ticket summaries and commit messages", 
-                    "report_generation": "Comprehensive markdown report generated with all required sections",
-                    "privacy_compliance": "Individual contributor data anonymized in final output"
+                "enhanced_success_criteria": {
+                    "subagent_coordination": "All 3 subagents executed successfully with proper data handoff for team analysis",
+                    "jira_pr_bridging": "PR links successfully extracted from team JIRA tickets with high attribution accuracy",
+                    "github_enhancement": "Team GitHub metrics collected using JIRA-discovered PR links for improved accuracy", 
+                    "cross_reference_analysis": "Team JIRA work completion validated against GitHub PR delivery",
+                    "team_insights": "Enhanced team performance insights generated from coordinated analysis",
+                    "attribution_accuracy": "Team work attribution accuracy >= 85% between JIRA and GitHub data",
+                    "privacy_compliance": "Individual contributor data anonymized while maintaining team-level insights"
                 },
                 
-                "troubleshooting": {
-                    "jira_access_issues": "Verify Atlassian MCP server configuration and cloud ID permissions",
-                    "github_rate_limits": "Use GitHub CLI authentication to increase API rate limits",
-                    "empty_results": "Verify team prefix exists in JIRA projects and GitHub repositories",
-                    "permission_errors": "Ensure sufficient JIRA project permissions and GitHub organization access"
+                "enhanced_troubleshooting": {
+                    "subagent_coordination_issues": "Verify all 3 subagents can execute in coordinated sequence without conflicts for team analysis",
+                    "jira_pr_extraction_issues": "Check team JIRA ticket descriptions and comments contain GitHub PR URLs",
+                    "github_pr_access_issues": "Verify GitHub CLI can access discovered PR URLs from team JIRA tickets",
+                    "attribution_accuracy_low": "Review team JIRA ticket PR linking practices and suggest improvements",
+                    "cross_reference_failures": "Validate team JIRA ticket completion dates align with PR merge dates",
+                    "team_data_issues": "Verify team has sufficient JIRA assignments and GitHub contributions in specified period",
+                    "rate_limit_coordination": "Implement proper rate limiting across all 3 subagents for team data collection",
+                    "anonymization_issues": "Ensure team reporting maintains individual privacy while providing team insights"
                 }
             }
             

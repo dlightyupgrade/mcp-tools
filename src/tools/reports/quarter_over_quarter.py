@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Quarter-over-Quarter Performance Analysis Tools
+Quarter-over-Quarter Performance Analysis Tools - ENHANCED 3-AGENT APPROACH
 
-PREREQUISITES - MUST BE CONFIGURED BEFORE USE:
-• GitHub CLI: `brew install gh` + `gh auth login`
-• Atlassian MCP Server: Authentication and cloud ID configuration required
-• JIRA Access: Team must have access to JIRA project with appropriate permissions
-• JQ: `brew install jq` for JSON processing
+PREREQUISITES: Run `setup_prerequisites` tool to validate all required tools and services.
+This tool depends on GitHub CLI, Atlassian MCP, JIRA access, and command-line utilities.
 
 Generate comprehensive multi-quarter team performance trend analysis with team size tracking,
-velocity changes, and comparative metrics across time periods by RETURNING INSTRUCTIONS
-for Claude Code to execute actual API calls rather than performing analysis directly.
+velocity changes, and comparative metrics across time periods using the proven 3-agent
+coordination approach: JIRA Analysis → GitHub Metrics → Report Generation.
+Returns INSTRUCTIONS for Claude Code to execute actual API calls rather than performing analysis directly.
 """
 
 import logging
@@ -19,6 +17,7 @@ from typing import Dict, Any, List
 
 from fastmcp import FastMCP
 from .base import ToolBase
+from .coordinator import JiraGithubReportCoordinator
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +127,90 @@ def register_quarter_over_quarter_tool(mcp: FastMCP):
                 get_context_fallback("quarter_over_quarter")
             )
             
+            # Generate 3-agent coordination instructions using JiraGithubReportCoordinator
+            customizations = JiraGithubReportCoordinator.create_quarter_over_quarter_customizations()
+            
+            # Generate subagent instructions for the analysis period
+            subagent_1 = JiraGithubReportCoordinator.generate_base_subagent_1_instructions(
+                analysis_type="quarter_over_quarter_analysis",
+                team_prefix=team_prefix,
+                start_date=quarters[0]["start_date"],
+                end_date=quarters[-1]["end_date"],
+                jira_query_customizer=f"Extended date range for trend analysis. Order by created ASC for chronological pattern analysis.",
+                additional_steps=[
+                    "## Multi-Quarter Team Composition Tracking",
+                    "# Track unique assignees per quarter for team size evolution analysis",
+                    "# Calculate quarter-over-quarter contributor retention rates",
+                    "# Identify new team members joining and departing contributors by quarter",
+                    "# Generate team stability metrics and turnover impact assessment"
+                ]
+            )
+            
+            subagent_2 = JiraGithubReportCoordinator.generate_base_subagent_2_instructions(
+                analysis_type="quarter_over_quarter_analysis", 
+                team_prefix=team_prefix,
+                start_date=quarters[0]["start_date"],
+                end_date=quarters[-1]["end_date"],
+                github_query_customizer=customizations["github_query_customizer"],
+                additional_steps=[
+                    "## Quarter-by-Quarter GitHub Activity Analysis",
+                    "# For each quarter, collect GitHub commit activity and contributor data",
+                    "# Track commit frequency patterns and code contribution velocity changes",
+                    "# Analyze repository activity diversity and technical focus evolution",
+                    "# Calculate commits-per-contributor ratios for productivity trend analysis",
+                    "# Cross-reference commit authors with JIRA assignees for team boundary accuracy"
+                ]
+            )
+            
+            subagent_3 = JiraGithubReportCoordinator.generate_base_subagent_3_instructions(
+                analysis_type="quarter_over_quarter_analysis",
+                report_name=f"{team_prefix} Quarter-over-Quarter Performance Analysis ({period})",
+                additional_steps=[
+                    "## Multi-Quarter Trend Analysis",
+                    "# Calculate linear trend progressions for key performance metrics",
+                    "# Perform statistical significance assessment for trend reliability",
+                    "# Generate quarter-over-quarter percentage change calculations", 
+                    "# Identify performance pattern changes and directional trends",
+                    "",
+                    "## Team Composition Evolution Analysis", 
+                    "# Track team size changes across all analyzed quarters",
+                    "# Calculate contributor retention rates and team stability metrics",
+                    "# Analyze new contributor onboarding and departure patterns",
+                    "# Generate team maturity and continuity assessment",
+                    "",
+                    "## Comparative Performance Insights",
+                    "# Compare first quarter vs final quarter performance metrics",
+                    "# Identify highest and lowest performing quarters with context",
+                    "# Generate weighted velocity scores combining tickets and commits",
+                    "# Provide strategic recommendations for team optimization"
+                ],
+                custom_output_sections=[
+                    "executive_summary",
+                    "team_size_evolution_analysis", 
+                    "performance_trend_analysis",
+                    "quarter_by_quarter_breakdown",
+                    "strategic_insights_and_recommendations",
+                    "comparative_analysis_summary",
+                    "methodology_and_data_sources"
+                ]
+            )
+            
+            coordination_instructions = JiraGithubReportCoordinator.generate_coordination_instructions(
+                tool_name="quarter_over_quarter_analysis",
+                analysis_context=f"Quarter-over-Quarter Team Performance Analysis - {period}",
+                subagent_1=subagent_1,
+                subagent_2=subagent_2,
+                subagent_3=subagent_3,
+                coordination_notes=[
+                    "Subagent 1 analyzes JIRA tickets across all quarters to extract team composition and assignment patterns",
+                    "Subagent 2 uses discovered PR links to collect GitHub metrics with quarter-by-quarter breakdown",
+                    "Subagent 3 performs comprehensive trend analysis and generates quarter-over-quarter comparisons",
+                    "Extended analysis period requires careful data segmentation by quarter for accurate trend calculations",
+                    "Team size tracking must maintain contributor privacy while providing meaningful aggregate insights",
+                    "Statistical significance testing validates trend reliability for strategic decision making"
+                ]
+            )
+
             # Return detailed analysis instructions
             qoq_instructions = {
                 "tool_name": "quarter_over_quarter_analysis",
@@ -141,37 +224,35 @@ def register_quarter_over_quarter_tool(mcp: FastMCP):
                 "quarters": quarters,
                 "description": description,
                 
-                "processing_instructions": {
+                # Include 3-agent coordination instructions
+                **coordination_instructions,
+                
+                "legacy_processing_instructions": {
                     "overview": f"Generate comprehensive quarter-over-quarter team performance analysis for {team_prefix} team covering {len(quarters)} quarters from {start_year} to {end_year}. Focus: {description or 'team performance trends, size changes, and velocity patterns across multiple quarters'}.",
                     
-                    "prerequisite_validation": [
-                        "Verify GitHub CLI authentication: `gh auth status`",
-                        "Verify Atlassian MCP server connection and cloud ID access",
-                        "Confirm JIRA project access for team prefix queries",
-                        "Ensure `jq` is available for JSON processing"
-                    ],
                     
                     "multi_quarter_data_collection": [
                         "## Quarter-by-Quarter Data Collection",
                         "For each quarter in the analysis period, execute the following data collection steps:",
                         ""
-                    ] + [
-                        f"### {quarter['quarter_name']} Data Collection",
-                        f"# JIRA Data for {quarter['quarter_name']}",
-                        f"Execute: mcp__atlassian__searchJiraIssuesUsingJql(cloudId='credify.atlassian.net', jql='project = \\\"{team_prefix}\\\" AND created >= \\\"{quarter['start_date']}\\\" AND created <= \\\"{quarter['end_date']}\\\" ORDER BY created DESC', fields=['summary', 'description', 'status', 'issuetype', 'priority', 'created', 'assignee', 'components'], maxResults=250)",
+                    ],
+                    
+                    "quarter_data_collection_template": [
+                        "### {quarter_name} Data Collection",
+                        "# JIRA Data for {quarter_name}",
+                        "Execute: mcp__atlassian__searchJiraIssuesUsingJql(cloudId='credify.atlassian.net', jql='project = \\\"{team_prefix}\\\" AND created >= \\\"{start_date}\\\" AND created <= \\\"{end_date}\\\" ORDER BY created DESC', fields=['summary', 'description', 'status', 'issuetype', 'priority', 'created', 'assignee', 'components'], maxResults=250)",
                         "",
-                        f"# GitHub Data for {quarter['quarter_name']}",
-                        f"Execute: gh search repos 'org:credify topic:{team_prefix.lower()} OR {team_prefix.lower()} in:name' --json name,url,defaultBranch",
-                        f"# For each repository, collect commit data:",
-                        f"Execute: gh api 'search/commits?q=author-date:{quarter['start_date']}..{quarter['end_date']}+org:credify+repo:REPO_NAME' --paginate",
-                        f"# Alternative if repo-specific search fails:",
-                        f"Execute: gh api 'repos/credify/REPO_NAME/commits?since={quarter['start_date']}T00:00:00Z&until={quarter['end_date']}T23:59:59Z' --paginate",
+                        "# GitHub Data for {quarter_name}",
+                        "Execute: gh search repos 'org:credify topic:{team_prefix_lower} OR {team_prefix_lower} in:name' --json name,url,defaultBranch",
+                        "# For each repository, collect commit data:",
+                        "Execute: gh api 'search/commits?q=author-date:{start_date}..{end_date}+org:credify+repo:REPO_NAME' --paginate",
+                        "# Alternative if repo-specific search fails:",
+                        "Execute: gh api 'repos/credify/REPO_NAME/commits?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z' --paginate",
                         "",
-                        f"# Team Member Identification for {quarter['quarter_name']}",
-                        f"# Extract unique GitHub commit authors and JIRA assignees for team size tracking",
-                        f"# Build anonymized contributor mapping while preserving privacy",
+                        "# Team Member Identification for {quarter_name}",
+                        "# Extract unique GitHub commit authors and JIRA assignees for team size tracking",
+                        "# Build anonymized contributor mapping while preserving privacy",
                         ""
-                        for quarter in quarters
                     ],
                     
                     "analysis_requirements": [

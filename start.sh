@@ -1,5 +1,5 @@
 #!/bin/bash
-# start.sh - Start MCP Tools Server Container
+# start.sh - Start MCP Tools Server Container with Semantic Versioning
 # Following MCP Guidelines: Containerized server with easy start/stop scripts
 
 set -euo pipefail
@@ -13,11 +13,74 @@ NC='\033[0m' # No Color
 
 # Configuration
 CONTAINER_NAME="mcp-tools"
-IMAGE_NAME="mcp-tools:latest"
-PORT="8002"
+DEFAULT_PORT="8002"
+
+# Get current version
+get_current_version() {
+    if [[ -f "version.py" ]]; then
+        python3 version.py current 2>/dev/null | grep -oP 'Current version: \K.*' || echo "latest"
+    else
+        echo "latest"
+    fi
+}
+
+# Parse command line arguments
+VERSION="latest"
+PORT="$DEFAULT_PORT"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --version)
+            VERSION="$2"
+            shift 2
+            ;;
+        --port)
+            PORT="$2"
+            shift 2
+            ;;
+        --help|-h)
+            cat << EOF
+MCP Tools Container Start Script
+
+Usage: $0 [options]
+
+Options:
+  --version VERSION   Use specific image version (default: auto-detect or latest)
+  --port PORT        Host port for MCP Tools (default: $DEFAULT_PORT)
+  --help, -h         Show this help message
+
+Examples:
+  $0                     # Start with auto-detected version
+  $0 --version 2.1.0     # Start with specific version  
+  $0 --port 8003         # Start on different port
+
+Notes:
+  - Automatically detects version from version.py if available
+  - Uses semantic versioning for container images
+  - Prefers podman over docker for container management
+EOF
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            exit 1
+            ;;
+    esac
+done
+
+# Auto-detect version if using default
+if [[ "$VERSION" == "latest" ]]; then
+    VERSION=$(get_current_version)
+    if [[ "$VERSION" != "latest" ]]; then
+        echo -e "${BLUE}🔍 Auto-detected version: ${VERSION}${NC}"
+    fi
+fi
+
+IMAGE_NAME="mcp-tools:${VERSION}"
 
 echo -e "${BLUE}🚀 Starting MCP Tools Server${NC}"
 echo -e "${BLUE}Container: ${CONTAINER_NAME}${NC}"
+echo -e "${BLUE}Image: ${IMAGE_NAME}${NC}"
 echo -e "${BLUE}Port: ${PORT}${NC}"
 echo ""
 

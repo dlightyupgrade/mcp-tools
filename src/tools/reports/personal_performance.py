@@ -1,27 +1,144 @@
 #!/usr/bin/env python3
 """
-Personal Performance Analysis Tools
+Personal Performance Analysis Tools with 3-Subagent Coordination
 
-PREREQUISITES - MUST BE CONFIGURED BEFORE USE:
-• GitHub CLI: `brew install gh` + `gh auth login`
-• Atlassian MCP Server: Authentication and cloud ID configuration required
-• JIRA Access: User must have access to JIRA project with appropriate permissions
-• Git Configuration: `git config --global user.name` and `git config --global user.email` must be set
-• JQ: `brew install jq` for JSON processing
+PREREQUISITES: Run `setup_prerequisites` tool to validate all required tools and services.
+This tool depends on GitHub CLI, Atlassian MCP, JIRA access, Git configuration, and command-line utilities.
 
-Generate personal performance analysis for individual contributors with personal development
-tracking and growth assessment by RETURNING INSTRUCTIONS for Claude Code to execute 
-actual API calls rather than performing analysis directly.
+Generate enhanced personal performance analysis using a 3-subagent coordination system:
+- Subagent 1: JIRA Analysis & PR Discovery
+- Subagent 2: GitHub PR Metrics Collection 
+- Subagent 3: Report Generation & Analysis
+
+Returns INSTRUCTIONS for Claude Code to execute coordinated analysis with improved
+JIRA→GitHub PR bridging and enhanced personal performance metrics.
 """
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from fastmcp import FastMCP
 from .base import ToolBase, get_context_fallback
 
 logger = logging.getLogger(__name__)
+
+
+class PersonalPerformanceCoordinator:
+    """3-Subagent coordination system for enhanced personal performance analysis"""
+    
+    @staticmethod
+    def generate_subagent_1_instructions(team_prefix: str, start_date: str, end_date: str) -> Dict[str, Any]:
+        """Generate instructions for Subagent 1: JIRA Analysis & PR Discovery"""
+        return {
+            "subagent": "1_jira_analysis_pr_discovery",
+            "purpose": "Process JIRA tickets to extract PR links and analyze personal assignments",
+            "execution_steps": [
+                "## User Identity Verification",
+                "Execute: git config --global user.name",
+                "Execute: git config --global user.email", 
+                "Execute: gh api user --jq '.login'",
+                "Execute: mcp__atlassian__lookupJiraAccountId(cloudId='credify.atlassian.net', searchString='{user_email}')",
+                "",
+                "## Personal JIRA Ticket Collection",
+                f"Execute: mcp__atlassian__searchJiraIssuesUsingJql(cloudId='credify.atlassian.net', jql='project = \"{team_prefix}\" AND assignee = \"{{user_account_id}}\" AND created >= \"{start_date}\" AND created <= \"{end_date}\" ORDER BY created DESC', fields=['summary', 'description', 'status', 'issuetype', 'priority', 'created', 'assignee', 'components', 'timeoriginalestimate', 'timespent', 'comment'], maxResults=250)",
+                "",
+                "## PR Link Extraction from JIRA",
+                "# Parse ticket descriptions and comments for GitHub PR URLs",
+                "# Extract patterns: 'PR: https://github.com/...', 'Resolves #123', '/pull/' URLs",
+                "# Build JIRA ticket → GitHub PR mapping for accurate attribution",
+                "# Store extracted PR URLs for Subagent 2 processing",
+                "",
+                "## Personal Assignment Analysis",
+                "# Analyze ticket assignment patterns and completion rates",
+                "# Track personal time estimation vs actual completion",
+                "# Identify technical focus areas from components and descriptions",
+                "# Generate personal JIRA metrics summary"
+            ],
+            "output_format": {
+                "personal_jira_metrics": "Total tickets, completion rate, time accuracy",
+                "extracted_pr_links": "List of GitHub PR URLs found in JIRA tickets",
+                "jira_pr_mapping": "Dictionary mapping JIRA ticket IDs to PR URLs",
+                "technical_focus_areas": "Primary areas of work from ticket analysis"
+            }
+        }
+    
+    @staticmethod
+    def generate_subagent_2_instructions(team_prefix: str, start_date: str, end_date: str) -> Dict[str, Any]:
+        """Generate instructions for Subagent 2: GitHub PR Metrics Collection"""
+        return {
+            "subagent": "2_github_pr_metrics",
+            "purpose": "Collect detailed GitHub PR and commit data using discovered PR links",
+            "execution_steps": [
+                "## Use PR Links from Subagent 1",
+                "# Process PR URLs discovered by Subagent 1 from JIRA tickets",
+                "# For each discovered PR URL, extract detailed metrics",
+                "",
+                "## Enhanced PR Data Collection", 
+                "# For each PR URL from Subagent 1:",
+                "Execute: gh pr view {pr_url} --json number,title,state,createdAt,mergedAt,additions,deletions,commits,changedFiles,reviewDecision",
+                "Execute: gh pr diff {pr_url} --name-only | wc -l  # Files changed count",
+                "Execute: gh pr view {pr_url} --json comments --jq '.comments | length'  # Comment count",
+                "",
+                "## Personal Commit Analysis",
+                f"Execute: gh api 'search/commits?q=author:{{github_username}}+author-date:{start_date}..{end_date}+org:credify' --paginate",
+                "# Cross-reference commits with PR URLs from Subagent 1",
+                "# Identify commits that are part of JIRA-linked PRs vs standalone work",
+                "",
+                "## Repository Contribution Mapping",
+                "Execute: gh search repos 'org:credify' --json name,fullName | head -20",
+                "# For key repositories, get personal contribution stats",
+                f"Execute: gh api 'repos/credify/{{repo_name}}/stats/contributors' | jq '.[] | select(.author.login == \"{{github_username}}\")'",
+                "",
+                "## PR→JIRA Cross-Reference",
+                "# Use Subagent 1's JIRA→PR mapping to enhance GitHub metrics",
+                "# Calculate PR completion rates vs JIRA ticket completion",
+                "# Identify work attribution gaps between JIRA and GitHub"
+            ],
+            "output_format": {
+                "enhanced_pr_metrics": "Detailed PR statistics with JIRA attribution",
+                "personal_commit_stats": "Commit frequency, lines changed, repository diversity",
+                "cross_reference_analysis": "JIRA work vs GitHub contributions alignment",
+                "contribution_quality_metrics": "PR size, review feedback, merge success rates"
+            }
+        }
+    
+    @staticmethod
+    def generate_subagent_3_instructions(team_prefix: str, quarter_name: str) -> Dict[str, Any]:
+        """Generate instructions for Subagent 3: Report Generation & Analysis"""
+        return {
+            "subagent": "3_report_generation", 
+            "purpose": "Synthesize all data into comprehensive personal performance report",
+            "execution_steps": [
+                "## Data Synthesis",
+                "# Combine Subagent 1 JIRA analysis with Subagent 2 GitHub metrics",
+                "# Cross-reference JIRA ticket completion with actual merged PRs",
+                "# Calculate accurate personal contribution attribution",
+                "",
+                "## Enhanced Performance Metrics",
+                "# Personal productivity: JIRA tickets + GitHub PRs with proper attribution",
+                "# Code quality indicators: PR review feedback, merge success rates",
+                "# Technical growth: Complexity evolution in both JIRA and GitHub data",
+                "# Learning velocity: New technologies/frameworks from commit analysis",
+                "",
+                "## Gap Analysis",
+                "# Identify JIRA tickets without corresponding GitHub PRs (process work)",
+                "# Identify GitHub PRs without corresponding JIRA tickets (maintenance)",
+                "# Calculate work attribution accuracy and identify improvement areas",
+                "",
+                "## Personal Development Insights",
+                "# Generate growth recommendations based on combined dataset",
+                "# Identify strength areas from consistent high performance patterns",
+                "# Suggest learning opportunities based on contribution gaps",
+                "# Create actionable development plan for next quarter"
+            ],
+            "output_format": {
+                "comprehensive_report": f"Full personal performance report for {quarter_name}",
+                "attribution_analysis": "JIRA vs GitHub work attribution accuracy",
+                "development_recommendations": "Personalized growth and learning suggestions",
+                "next_quarter_goals": "Data-driven objectives for continued development"
+            }
+        }
 
 
 def register_personal_performance_tools(mcp: FastMCP):
@@ -123,71 +240,82 @@ def register_personal_performance_tools(mcp: FastMCP):
                 "description": description,
                 
                 "processing_instructions": {
-                    "overview": f"Generate personal quarterly performance report for {quarter_name}. Focus: {description or 'individual contributor performance analysis and development guidance'}.",
+                    "overview": f"Generate enhanced personal quarterly performance report for {quarter_name} using 3-subagent coordination system. Focus: {description or 'comprehensive personal performance analysis with JIRA→GitHub PR bridging'}.",
                     
                     "prerequisite_validation": [
                         "Verify GitHub CLI authentication: `gh auth status`",
                         "Verify Atlassian MCP server connection and cloud ID access",
                         "Get current user identity from git config: `git config --global user.name` and `git config --global user.email`",
-                        "Ensure `jq` is available for JSON processing"
+                        "Ensure `jq` is available for JSON processing",
+                        "Prepare for 3-subagent parallel execution coordination"
                     ],
                     
-                    "user_identification_steps": [
-                        "## Current User Identification",
-                        "Execute: git config --global user.name",
-                        "Execute: git config --global user.email",
-                        "Execute: gh api user --jq '.login' (GitHub username)",
-                        "# Use these identifiers to filter personal contributions from team data"
+                    "subagent_coordination": {
+                        "execution_strategy": "Execute all 3 subagents in parallel for maximum efficiency",
+                        "subagent_1": PersonalPerformanceCoordinator.generate_subagent_1_instructions(team_prefix, start_date, end_date),
+                        "subagent_2": PersonalPerformanceCoordinator.generate_subagent_2_instructions(team_prefix, start_date, end_date), 
+                        "subagent_3": PersonalPerformanceCoordinator.generate_subagent_3_instructions(team_prefix, quarter_name),
+                        "coordination_notes": [
+                            "Subagent 1 runs first to discover JIRA→PR mappings",
+                            "Subagent 2 uses Subagent 1's PR links for enhanced GitHub analysis",
+                            "Subagent 3 synthesizes both datasets for comprehensive report",
+                            "All subagents work independently on their domain expertise",
+                            "Data handoff via structured interim results"
+                        ]
+                    },
+                    
+                    "enhanced_jira_github_bridging": [
+                        "## JIRA→GitHub PR Link Extraction (Subagent 1)",
+                        "# Parse JIRA ticket descriptions for GitHub PR URLs",
+                        "# Search patterns: 'PR: https://github.com/', 'Resolves #123', '/pull/' URLs",
+                        "# Extract PR numbers from ticket comments and descriptions", 
+                        "# Build accurate mapping between JIRA work and GitHub code contributions",
+                        "# Cross-reference JIRA ticket completion with actual merged PRs",
+                        "",
+                        "## Enhanced GitHub Analysis (Subagent 2)",
+                        "# Use discovered PR URLs for detailed metrics collection",
+                        "# Collect PR review feedback, merge success rates, change complexity",
+                        "# Analyze commit patterns within JIRA-linked PRs vs standalone work",
+                        "# Calculate repository diversity and contribution patterns",
+                        "",
+                        "## Cross-Reference Analysis (Subagent 3)", 
+                        "# Validate JIRA ticket completion against actual merged PRs",
+                        "# Identify work attribution gaps and process improvements",
+                        "# Generate accurate personal contribution metrics",
+                        "# Produce actionable insights for personal development"
                     ],
                     
-                    "data_collection_steps": [
-                        "## Personal JIRA Data Collection",
-                        "# First get current user's Atlassian account ID",
-                        f"Execute: mcp__atlassian__lookupJiraAccountId(cloudId='credify.atlassian.net', searchString='{{user_email_from_git_config}}')",
-                        "# Then search for personal tickets",
-                        f"Execute: mcp__atlassian__searchJiraIssuesUsingJql(cloudId='credify.atlassian.net', jql='project = \"{team_prefix}\" AND assignee = \"{{user_account_id}}\" AND created >= \"{start_date}\" AND created <= \"{end_date}\" ORDER BY created DESC', fields=['summary', 'description', 'status', 'issuetype', 'priority', 'created', 'assignee', 'components', 'timeoriginalestimate', 'timespent'], maxResults=250)",
+                    "enhanced_analysis_requirements": [
+                        "**Enhanced Personal JIRA Analysis (Subagent 1):**",
+                        "- Total tickets assigned and completed personally with PR link discovery",
+                        "- Personal issue type distribution and technical focus areas",
+                        "- Time estimation accuracy (estimated vs actual completion)",
+                        "- PR link extraction from descriptions and comments for attribution",
+                        "- Cross-reference ticket completion with actual code delivery",
                         "",
-                        "## Personal GitHub Data Collection",
-                        "# Search for personal commits using GitHub username",
-                        f"Execute: gh api 'search/commits?q=author:{{github_username}}+author-date:{start_date}..{end_date}+org:credify' --paginate",
-                        "# Alternative: Search specific repositories",
-                        f"Execute: gh search repos 'org:credify topic:{team_prefix.lower()} OR {team_prefix.lower()} in:name' --json name",
-                        "# For each repository, get personal commits:",
-                        f"Execute: gh api 'repos/credify/{{repo_name}}/commits?author={{github_username}}&since={start_date}T00:00:00Z&until={end_date}T23:59:59Z' --paginate",
+                        "**Enhanced Personal GitHub Analysis (Subagent 2):**", 
+                        "- Detailed PR metrics using JIRA-discovered links",
+                        "- Personal code contribution quality (review feedback, merge rates)", 
+                        "- Repository diversity and contribution complexity evolution",
+                        "- Commit patterns within JIRA-linked PRs vs standalone development",
+                        "- Technical growth indicators from code change analysis",
                         "",
-                        "## Personal Pull Request Analysis",
-                        f"Execute: gh search prs 'org:credify author:{{github_username}} created:{start_date}..{end_date}' --json number,title,url,state,createdAt,mergedAt,additions,deletions"
+                        "**Cross-Reference Attribution Analysis (Subagent 3):**",
+                        "- JIRA ticket completion vs GitHub PR delivery alignment",
+                        "- Work attribution accuracy and process improvement opportunities",
+                        "- Personal productivity metrics with enhanced accuracy",
+                        "- Learning velocity based on technical complexity progression",
+                        "",
+                        "**Personal Development Insights (Subagent 3):**",
+                        "- Strength areas from consistent high-performance patterns",
+                        "- Growth opportunities identified from contribution gap analysis", 
+                        "- Technical skill development trajectory with evidence",
+                        "- Personalized learning recommendations based on data patterns"
                     ],
                     
-                    "analysis_requirements": [
-                        "**Personal JIRA Analysis:**",
-                        "- Total tickets assigned and completed personally",
-                        "- Personal issue type distribution and preferences",
-                        "- Average completion time for personal tickets",
-                        "- Areas of technical focus based on ticket components",
-                        "- Time estimation accuracy (estimated vs actual time spent)",
-                        "",
-                        "**Personal GitHub Analysis:**", 
-                        "- Total personal commits in the quarter",
-                        "- Personal code contribution metrics (lines added/deleted)",
-                        "- Repository diversity (how many different repos contributed to)",
-                        "- Pull request creation and merge rate",
-                        "- Commit message quality and patterns",
-                        "",
-                        "**Personal Productivity Analysis:**",
-                        "- Personal velocity trends within the quarter",
-                        "- Balance between feature work, bug fixes, and technical debt",
-                        "- Collaboration patterns (code reviews, pair programming indicators)",
-                        "- Learning and growth indicators from commit/ticket patterns",
-                        "",
-                        "**Development Focus Analysis:**",
-                        "- Primary technical areas worked on (from ticket components and commit paths)",
-                        "- Skill development trajectory based on increasing complexity",
-                        "- Cross-functional contributions and learning scope"
-                    ],
-                    
-                    "required_output_format": f"""
-# Personal Performance Report - {quarter_name}
+                    "enhanced_output_format": f"""
+# Enhanced Personal Performance Report - {quarter_name}
+*Generated using 3-Subagent Coordination System with JIRA→GitHub PR Bridging*
 
 ## Personal Summary
 *Report generated on {{timestamp}} for personal contributions during {quarter_name} ({{start_date}} to {{end_date}})*
@@ -312,30 +440,34 @@ Based on personal JIRA tickets and GitHub commits:
                 
                 "external_context": context_content,
                 
-                "success_criteria": {
-                    "user_identification": "Current user identity successfully determined from git config and GitHub auth",
-                    "personal_data_collection": "Personal JIRA tickets and GitHub commits successfully retrieved",
-                    "productivity_analysis": "Personal productivity metrics calculated accurately",
-                    "growth_analysis": "Personal skill development and learning opportunities identified",
-                    "report_generation": "Comprehensive personal development report generated",
-                    "privacy_compliance": "Only personal data included, no team comparisons or individual rankings"
+                "enhanced_success_criteria": {
+                    "subagent_coordination": "All 3 subagents executed successfully with proper data handoff",
+                    "jira_pr_bridging": "PR links successfully extracted from JIRA tickets with high attribution accuracy",
+                    "github_enhancement": "GitHub metrics collected using JIRA-discovered PR links for improved accuracy", 
+                    "cross_reference_analysis": "JIRA work completion validated against GitHub PR delivery",
+                    "personal_insights": "Enhanced personal development insights generated from coordinated analysis",
+                    "attribution_accuracy": "Work attribution accuracy >= 85% between JIRA and GitHub data",
+                    "privacy_compliance": "Only personal data analyzed, no team member comparisons"
                 },
                 
-                "troubleshooting": {
-                    "user_identity_issues": "Verify git config is set and GitHub CLI is authenticated with correct account",
-                    "jira_access_issues": "Ensure JIRA access and verify account ID lookup works correctly",
-                    "github_rate_limits": "Use authenticated GitHub CLI to increase API rate limits",
-                    "empty_personal_data": "Verify user has contributed to specified team prefix during the quarter"
+                "enhanced_troubleshooting": {
+                    "subagent_coordination_issues": "Verify all 3 subagents can execute in parallel without conflicts",
+                    "jira_pr_extraction_issues": "Check JIRA ticket descriptions and comments contain GitHub PR URLs",
+                    "github_pr_access_issues": "Verify GitHub CLI can access discovered PR URLs from JIRA",
+                    "attribution_accuracy_low": "Review JIRA ticket PR linking practices and suggest improvements",
+                    "cross_reference_failures": "Validate JIRA ticket completion dates align with PR merge dates",
+                    "empty_personal_data": "Verify user has JIRA assignments and GitHub contributions in specified period",
+                    "rate_limit_coordination": "Implement proper rate limiting across all 3 subagents"
                 }
             }
             
-            logger.info(f"Personal quarterly report instructions generated for: {quarter_name}")
+            logger.info(f"Enhanced personal quarterly report with 3-subagent coordination generated for: {quarter_name}")
             return personal_instructions
             
         except Exception as e:
-            logger.error(f"Error generating personal quarterly report instructions: {str(e)}")
+            logger.error(f"Error generating enhanced personal quarterly report instructions: {str(e)}")
             return ToolBase.create_error_response(
-                f"Failed to generate personal quarterly report instructions: {str(e)}",
+                f"Failed to generate enhanced personal quarterly report instructions: {str(e)}",
                 error_type=type(e).__name__
             )
 
@@ -456,16 +588,17 @@ Based on personal JIRA tickets and GitHub commits:
                         "## Quarter-by-Quarter Data Collection",
                         "For each quarter in the analysis period:",
                         "### Quarter Data Collection Loop",
-                    ] + [
-                        f"## {quarter} Data Collection",
-                        f"# JIRA data for {quarter}",
-                        f"Execute: mcp__atlassian__searchJiraIssuesUsingJql(...) # with appropriate date ranges for {quarter}",
-                        f"# GitHub data for {quarter}",
-                        f"Execute: gh api 'search/commits?q=author:{{github_username}}+author-date:{{quarter_start}}..{{quarter_end}}+org:credify'",
-                        f"# Pull request data for {quarter}",
-                        f"Execute: gh search prs 'org:credify author:{{github_username}} created:{{quarter_start}}..{{quarter_end}}'",
+                    ],
+                    
+                    "quarter_data_collection_template": [
+                        "## {quarter} Data Collection",
+                        "# JIRA data for {quarter}",
+                        "Execute: mcp__atlassian__searchJiraIssuesUsingJql(...) # with appropriate date ranges for {quarter}",
+                        "# GitHub data for {quarter}",
+                        "Execute: gh api 'search/commits?q=author:{{github_username}}+author-date:{{quarter_start}}..{{quarter_end}}+org:credify'",
+                        "# Pull request data for {quarter}",
+                        "Execute: gh search prs 'org:credify author:{{github_username}} created:{{quarter_start}}..{{quarter_end}}'",
                         ""
-                        for quarter in quarters
                     ],
                     
                     "trend_analysis_requirements": [

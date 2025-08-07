@@ -35,7 +35,7 @@ from auth.oauth_shell import (
     authorize,
     token_endpoint
 )
-from tools import register_all_tools, get_tool_descriptions
+from tools import register_all_tools, get_all_tool_descriptions
 
 # Configure logging
 logging.basicConfig(
@@ -69,11 +69,11 @@ def main():
         
         # Health endpoint for container health checks
         async def health_check(request: Request):
-            tool_descriptions = get_tool_descriptions()
+            tool_descriptions = get_all_tool_descriptions()
             return JSONResponse({
                 "status": "healthy",
                 "service": "mcp-tools",
-                "version": "2.0.0",
+                "version": "2.0.1",
                 "architecture": "modular",
                 "transport": "FastMCP HTTP Streaming",
                 "timestamp": datetime.now().isoformat(),
@@ -106,7 +106,7 @@ def main():
             app.routes.append(route)
         
         logger.info("FastMCP HTTP Streaming server initialized with shell authentication")
-        logger.info(f"Available tools: {', '.join(get_tool_descriptions().keys())}")
+        logger.info(f"Available tools: {', '.join(get_all_tool_descriptions().keys())}")
         logger.info("Authentication endpoints: /.well-known/oauth-authorization-server, /register, /auth, /token")
         
         # Run with uvicorn
