@@ -28,8 +28,10 @@ def register_all_work_tools(mcp: FastMCP) -> Dict[str, Any]:
     
     # List of work tool modules to register
     work_modules = [
-        ("pr_violations", "register_pr_violations_tool"),
+        ("pr_health", "register_pr_health_tool"),
         ("code_review", "register_code_review_tool"), 
+        ("enhanced_code_review", "register_enhanced_code_review_tool"),
+        ("enhanced_code_review_v2", "register_enhanced_code_review_v2_tool"),
         ("tech_design_review", "register_tech_design_review_tool"),
         ("jira_transition", "register_jira_transition_tool"),
         ("jira_transitions", "register_jira_transitions_tool"),
@@ -86,7 +88,7 @@ def get_work_tool_descriptions() -> Dict[str, str]:
         Dictionary mapping tool names to their descriptions
     """
     return {
-        "pr_violations": "Analyze PR violations, open review threads, CI failures, and merge conflicts",
+        "pr_health": "Analyze PR health including open review threads, CI status, merge conflicts, and overall readiness",
         "code_review": "Perform comprehensive code quality review of pull requests",
         "tech_design_review": "Comprehensive technical design document review with architecture, security, and implementation analysis",
         "jira_transition": "Automatically perform JIRA ticket transitions using Atlassian MCP",

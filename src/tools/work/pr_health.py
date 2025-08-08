@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-PR Violations Analysis Tool
+PR Health Analysis Tool
 
-Analyze PR violations, open review threads, CI failures, and merge conflicts.
+Analyze PR health including open review threads, CI status, merge conflicts, and overall readiness.
 Provides detailed step-by-step instructions for Claude Code to perform comprehensive 
-PR violations analysis including open review threads, CI status, merge conflicts, 
-and actionable solutions.
+PR health assessment with actionable solutions for blocking issues.
 """
 
 import logging
@@ -18,38 +17,38 @@ from config.settings import Config
 logger = logging.getLogger(__name__)
 
 
-def register_pr_violations_tool(mcp: FastMCP):
-    """Register the pr_violations tool with the FastMCP server"""
+def register_pr_health_tool(mcp: FastMCP):
+    """Register the pr_health tool with the FastMCP server"""
     
     @mcp.tool
-    def pr_violations(pr_url: str, description: str = "") -> Dict[str, Any]:
+    def pr_health(pr_url: str, description: str = "") -> Dict[str, Any]:
         """
-        Analyze PR violations, open review threads, CI failures, and merge conflicts - INSTRUCTIONS ONLY.
+        Analyze PR health including open review threads, CI status, merge conflicts, and readiness - INSTRUCTIONS ONLY.
         
         **Natural Language Triggers:**
-        - "check pr violations for [PR_URL]"
-        - "analyze pr problems in [PR_URL]" 
-        - "what's wrong with this PR [PR_URL]"
-        - "pr violations analysis [PR_URL]"
+        - "check pr health for [PR_URL]"
+        - "analyze pr status in [PR_URL]" 
+        - "what's blocking this PR [PR_URL]"
+        - "pr health analysis [PR_URL]"
         - "check review threads in [PR_URL]"
-        - "find pr issues [PR_URL]"
+        - "pr readiness check [PR_URL]"
         
         **What this tool does:**
         Provides comprehensive step-by-step instructions for analyzing PR health including open review 
-        threads, CI failures, merge conflicts, and actionable solutions. Returns detailed GitHub API 
+        threads, CI status, merge conflicts, and overall readiness. Returns detailed GitHub API 
         commands for Claude Code to execute - does NOT run analysis directly.
         
-        **Perfect for:** PR health checks, code review cleanup, merge readiness assessment, 
-        identifying blocking issues before merge.
+        **Perfect for:** PR health assessment, code review cleanup, merge readiness evaluation, 
+        identifying and resolving blocking issues.
         
         Args:
             pr_url: GitHub PR URL to analyze (e.g., https://github.com/owner/repo/pull/123)
-            description: Optional focus area (e.g., "security review", "merge conflicts")
+            description: Optional focus area (e.g., "review threads", "merge readiness")
             
         Returns:
-            Comprehensive instructions for Claude Code to perform PR violations analysis
+            Comprehensive instructions for Claude Code to perform PR health analysis
         """
-        logger.info(f"pr_violations tool called for: {pr_url}")
+        logger.info(f"pr_health tool called for: {pr_url}")
         
         try:
             # Validate PR URL format
@@ -65,16 +64,16 @@ def register_pr_violations_tool(mcp: FastMCP):
             repo = components["repo"]
             pr_number = components["pr_number"]
             
-            # Load external context for PR violations analysis
+            # Load external context for PR health analysis
             context_content = ToolBase.load_external_context(
-                "/Users/dlighty/code/llm-context/PR-VIOLATIONS-CONTEXT.md",
-                get_context_fallback("pr_violations")
+                "/Users/dlighty/code/llm-context/PR-HEALTH-CONTEXT.md",
+                get_context_fallback("pr_health")
             )
             
             # Return detailed analysis instructions
-            violations_analysis = {
-                "tool_name": "pr_violations",
-                "analysis_context": "PR Violations Analysis - Generate Structured Violation Report",
+            health_analysis = {
+                "tool_name": "pr_health",
+                "analysis_context": "PR Health Analysis - Generate Comprehensive Health Assessment",
                 "timestamp": ToolBase.create_success_response({})["timestamp"],
                 "pr_url": pr_url,
                 "pr_owner": owner,
@@ -83,7 +82,7 @@ def register_pr_violations_tool(mcp: FastMCP):
                 "description": description,
                 
                 "processing_instructions": {
-                    "overview": f"Extract PR data and generate comprehensive violations analysis with open review threads, CI failures, and merge conflicts. Focus: {description or 'comprehensive violation detection with actionable solutions'}.",
+                    "overview": f"Extract PR data and generate comprehensive health assessment with review threads, CI status, merge readiness, and blocking issue resolution. Focus: {description or 'comprehensive health evaluation with actionable recommendations'}.",
                     
                     "data_extraction_steps": [
                         f"Execute: gh api \"repos/{owner}/{repo}/pulls/{pr_number}\" (PR details)",
@@ -92,12 +91,12 @@ def register_pr_violations_tool(mcp: FastMCP):
                         f"Execute: gh api \"repos/{owner}/{repo}/pulls/{pr_number}/comments\" (inline comments)",
                         f"Execute: gh pr view {pr_number} --repo {owner}/{repo} --json mergeable,mergeStateStatus (merge status)",
                         "Extract JIRA ticket from PR title/body (SI-XXXX pattern)",
-                        "If JIRA ticket found, execute: mcp__atlassian__getJiraIssue(cloudId='credify.atlassian.net', issueIdOrKey='TICKET_ID', fields=['summary', 'description', 'status']) to get ticket context for violation analysis",
+                        "If JIRA ticket found, execute: mcp__atlassian__getJiraIssue(cloudId='credify.atlassian.net', issueIdOrKey='TICKET_ID', fields=['summary', 'description', 'status']) to get ticket context for health analysis",
                         "Get code context for each thread location using GitHub Contents API"
                     ],
                     
                     "required_output_format": """
-## 🔍 PR Violation Analysis: [ACTUAL_PR_TITLE]
+## 🏥 PR Health Analysis: [ACTUAL_PR_TITLE]
 
 **Repository**: [REPO] #[NUMBER]
 **PR Title**: [ACTUAL_PR_TITLE]
@@ -165,15 +164,15 @@ Scaling Rules:
                     ]
                 },
                 
-                "violation_categories": {
+                "health_categories": {
                     "blocking": {
                         "description": "Issues that prevent merge (conflicts, failed CI, security)",
                         "priority": "immediate",
                         "examples": "merge conflicts, failing tests, security vulnerabilities"
                     },
                     "high_priority": {
-                        "description": "Code quality violations requiring attention",
-                        "priority": "urgent",
+                        "description": "Code quality issues requiring attention",
+                        "priority": "urgent", 
                         "examples": "missing tests, code quality issues, performance problems"
                     },
                     "medium_priority": {
@@ -192,22 +191,22 @@ Scaling Rules:
                 
                 "success_criteria": {
                     "data_extraction": "PR details, threads, CI status, and code context successfully extracted",
-                    "violation_classification": "All violations categorized by priority with actionable solutions",
+                    "health_classification": "All health issues categorized by priority with actionable solutions",
                     "thread_analysis": "Open threads analyzed with complexity assessment and solutions",
                     "jira_integration": "JIRA ticket extracted from PR and Atlassian MCP called if ticket found",
-                    "jira_context": "JIRA ticket data (if available) used to understand intended changes and assess violations",
+                    "jira_context": "JIRA ticket data (if available) used to understand intended changes and assess health issues",
                     "quality_scoring": "Confidence score and quality grade assigned based on analysis completeness",
                     "actionable_output": "Structured report with file:line references and next steps provided"
                 }
             }
             
-            logger.info(f"PR violations orchestration instructions generated for: {pr_url}")
-            return violations_analysis
+            logger.info(f"PR health orchestration instructions generated for: {pr_url}")
+            return health_analysis
             
         except Exception as e:
-            logger.error(f"Error generating PR violations orchestration: {str(e)}")
+            logger.error(f"Error generating PR health orchestration: {str(e)}")
             return ToolBase.create_error_response(
-                f"Failed to generate PR violations orchestration: {str(e)}",
+                f"Failed to generate PR health orchestration: {str(e)}",
                 pr_url,
                 type(e).__name__
             )
