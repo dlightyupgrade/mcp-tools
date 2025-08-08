@@ -135,10 +135,35 @@ curl -X POST http://localhost:8002/mcp \
 13. **echo**: Simple echo for testing
 14. **get_system_info**: System information
 
+## ⚠️ Alpha Development Status
+
+**MCP-Tools is currently in alpha development stage:**
+
+### Alpha Stage Limitations
+- **Not Production Ready**: Features and accuracy are not guaranteed
+- **Data Validation Required**: All report outputs require manual verification
+- **Internal Use Only**: Not suitable for official reporting or business decisions
+- **Format Instability**: Report templates and structure may change without notice
+- **Incomplete Analysis**: Some metrics and insights may be missing or inaccurate
+
+### Intended Usage Scope
+- **Development Testing**: Feature validation and feedback collection
+- **Internal Prototyping**: Proof-of-concept for reporting capabilities  
+- **Team Experimentation**: Learning and exploring data analysis patterns
+- **Feedback Collection**: Gathering requirements for production version
+
+### Alpha Testing Guidelines
+- **Manual Validation**: Always verify data accuracy against source systems
+- **Limited Distribution**: Do not share reports outside development team
+- **Feedback Required**: Report issues and suggestions to development team
+- **Backup Methods**: Maintain alternative reporting approaches for critical needs
+
+---
+
 ## Reporting Features
 
-### Quarterly Team Reports
-The MCP-tools server includes comprehensive quarterly reporting capabilities:
+### Quarterly Team Reports (Alpha Development)
+The MCP-tools server includes comprehensive quarterly reporting capabilities currently in alpha development stage:
 
 - **Team Performance Analysis**: Anonymized metrics for team productivity and development velocity
 - **Multi-Quarter Support**: Q1-Q4 for any year (2020-2030)
@@ -171,8 +196,8 @@ quarterly_team_report --team_prefix CORE --year 2025 --quarter 3 --description "
 - **Team Velocity**: Development speed and cross-functional coordination
 - **Data Sources Appendix**: Complete methodology and data collection details
 
-### Quarter-over-Quarter Analysis
-Advanced multi-quarter trend analysis with team composition tracking:
+### Quarter-over-Quarter Analysis (Alpha Development)
+Advanced multi-quarter trend analysis with team composition tracking (currently in alpha development):
 
 - **Team Size Evolution**: Track contributor changes, retention rates, and team growth patterns
 - **Performance Trends**: Velocity changes, productivity patterns, and comparative metrics
@@ -200,8 +225,8 @@ quarter_over_quarter_analysis --team_prefix CORE --period "2024-2025" --descript
 - **Strategic Recommendations**: Data-driven insights for team optimization
 - **Retention Analysis**: Contributor overlap and team knowledge continuity
 
-### Personal Performance Reporting
-Individual contributor performance analysis for personal development tracking and growth assessment:
+### Personal Performance Reporting (Alpha Development)
+Individual contributor performance analysis for personal development tracking and growth assessment (currently in alpha development):
 
 - **Individual Focus**: Personal metrics analysis without team comparisons for privacy-conscious reporting
 - **Single Quarter Analysis**: Comprehensive performance snapshot for a specific quarter
