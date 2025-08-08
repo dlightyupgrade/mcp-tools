@@ -55,6 +55,12 @@ build_container() {
     
     log_info "Building $image_name:$version using $container_runtime..."
     
+    # Ensure Poetry lock file is up to date
+    if command -v poetry >/dev/null 2>&1; then
+        log_info "Updating Poetry lock file..."
+        poetry lock --check 2>/dev/null || poetry lock
+    fi
+    
     # Build with version tag
     if $container_runtime build -t "$image_name:$version" .; then
         log_success "Built $image_name:$version"

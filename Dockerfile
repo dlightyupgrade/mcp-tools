@@ -15,18 +15,24 @@ RUN apt-get update && apt-get install -y \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies directly
-RUN pip install --no-cache-dir \
-    fastmcp>=2.10.2 \
-    httpx>=0.28.1 \
-    psutil>=7.0.0
+# Install Poetry
+RUN pip install --no-cache-dir poetry
+
+# Copy dependency files first for better layer caching
+COPY pyproject.toml poetry.lock* README.md ./
+
+# Configure Poetry and install dependencies (dependencies only, not the package itself)
+RUN poetry config virtualenvs.create false && \
+    poetry install --only main --no-root
 
 # Skip OAuth patching for now - FastMCP handles headless environments
 
 # Copy source code
 COPY src/ ./src/
-COPY pyproject.toml ./
 COPY version.py ./
+
+# Now install the package itself
+RUN poetry install --only-root
 
 # Create non-root user
 RUN groupadd -g 1001 mcp && \

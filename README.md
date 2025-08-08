@@ -4,6 +4,25 @@ A FastMCP server providing development tools for Claude Code integration.
 
 ## Setup
 
+### Development Setup (Poetry)
+
+```bash
+# Install Poetry if you haven't already
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install dependencies
+poetry install
+
+# Run server in development mode
+poetry run python src/mcp_tools_server.py
+
+# Or activate virtual environment
+poetry shell
+python src/mcp_tools_server.py
+```
+
+### Container Setup (Production)
+
 ```bash
 # Build image
 ./build.sh
@@ -14,6 +33,12 @@ A FastMCP server providing development tools for Claude Code integration.
 # Add to Claude Code
 claude mcp add mcp-tools http://localhost:8002/mcp/ --transport http --scope user
 ```
+
+### Requirements
+- Python 3.11+ (with upper bound <4.0 for compatibility)
+- Poetry for dependency management
+- Git, curl, jq for tool execution
+- Podman or Docker for containerization
 
 ## Tools Available (14 Core Tools)
 

@@ -63,12 +63,12 @@ The port 8002 is specifically chosen for MCP Tools to avoid conflicts with:
 
 ### Build and Run
 ```bash
-# Python/uv (Recommended)
-uv sync              # Install dependencies
-uv run python src/mcp_tools_server.py  # Run server
+# Poetry (Recommended)
+poetry install              # Install dependencies
+poetry run python src/mcp_tools_server.py  # Run server
 
-# Alternative with pip
-pip install -e .
+# Alternative development mode
+poetry shell                # Activate virtual environment
 python src/mcp_tools_server.py
 
 # Container

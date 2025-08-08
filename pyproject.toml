@@ -1,39 +1,34 @@
-[project]
+[tool.poetry]
 name = "mcp-tools"
 version = "2.0.1"
 description = "FastMCP Tools Server v2.0 - Modular development workflow automation with PR analysis, code review, and deployment tools"
-requires-python = ">=3.11"
-dependencies = [
-    "fastmcp>=2.10.2",
-    "httpx>=0.28.1",
-    "psutil>=7.0.0",
+authors = ["MCP Tools Team <tools@mcp.com>"]
+readme = "README.md"
+packages = [
+    {include = "tools", from = "src"},
+    {include = "auth", from = "src"},
+    {include = "config", from = "src"}
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-httpx>=0.22.0",
-    "black>=23.0.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0.0",
-]
-test = [
-    "pytest>=7.0.0", 
-    "pytest-asyncio>=0.21.0",
-    "pytest-httpx>=0.22.0",
-]
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
+fastmcp = ">=2.10.2"
+httpx = ">=0.28.1"
+psutil = ">=7.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.0.0"
+pytest-asyncio = ">=0.21.0"
+pytest-httpx = ">=0.22.0"
+black = ">=23.0.0"
+ruff = ">=0.1.0"
+mypy = ">=1.0.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=7.0.0"
+pytest-asyncio = ">=0.21.0"
+pytest-httpx = ">=0.22.0"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src"]
-
-[dependency-groups]
-dev = [
-    "fastmcp>=2.10.2",
-    "httpx>=0.28.1",
-    "psutil>=7.0.0",
-]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
