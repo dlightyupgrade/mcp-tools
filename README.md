@@ -12,7 +12,7 @@ A FastMCP server providing development tools for Claude Code integration.
 ./start.sh
 
 # Add to Claude Code
-claude mcp add http://localhost:8002/mcp/ --transport http --scope user --name mcp-tools
+claude mcp add mcp-tools http://localhost:8002/mcp/ --transport http --scope user
 ```
 
 ## Tools Available (14 Core Tools)
