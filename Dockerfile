@@ -29,7 +29,8 @@ RUN poetry config virtualenvs.create false && \
 
 # Copy source code
 COPY src/ ./src/
-COPY version.py ./
+COPY common/ ./common/
+COPY mcp_tools_server.py version.py ./
 
 # Now install the package itself
 RUN poetry install --only-root
@@ -63,4 +64,4 @@ LABEL org.opencontainers.image.source="https://github.com/user/mcp-tools"
 LABEL org.opencontainers.image.vendor="Development Tools"
 
 # Start FastMCP server
-CMD ["python", "src/mcp_tools_server.py"]
+CMD ["python", "mcp_tools_server.py"]

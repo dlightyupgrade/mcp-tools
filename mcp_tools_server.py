@@ -18,6 +18,10 @@ Architecture:
 import logging
 import sys
 from datetime import datetime
+from pathlib import Path
+
+# Add current directory to path for common module imports
+sys.path.insert(0, str(Path(__file__).parent))
 
 import uvicorn
 from fastmcp import FastMCP
@@ -26,8 +30,8 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 # Import our modular components
-from config.settings import Config
-from auth.oauth_shell import (
+from src.config.settings import Config
+from src.auth.oauth_shell import (
     oauth_authorization_server,
     oauth_authorization_server_mcp,
     oauth_protected_resource,
@@ -35,7 +39,7 @@ from auth.oauth_shell import (
     authorize,
     token_endpoint
 )
-from tools import register_all_tools, get_all_tool_descriptions
+from src.tools import register_all_tools, get_all_tool_descriptions
 
 # Configure logging
 logging.basicConfig(

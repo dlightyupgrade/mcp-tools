@@ -65,11 +65,11 @@ The port 8002 is specifically chosen for MCP Tools to avoid conflicts with:
 ```bash
 # Poetry (Recommended)
 poetry install              # Install dependencies
-poetry run python src/mcp_tools_server.py  # Run server
+poetry run python mcp_tools_server.py      # Run server
 
 # Alternative development mode
 poetry shell                # Activate virtual environment
-python src/mcp_tools_server.py
+python mcp_tools_server.py
 
 # Container
 podman build -t mcp-tools .
@@ -92,11 +92,12 @@ curl -X POST http://localhost:8002/mcp \
   -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "echo", "arguments": {"text": "Hello MCP"}}}'
 ```
 
-## Architecture v2.0 - Modular Design
+## Architecture v2.0 - Single Server with Modular Tools
 
-### Version Comparison
-- **mcp_tools_server.py**: v2.0 modular architecture (PRODUCTION)
-- **mcp_tools_server_v1.py**: v1.0 monolithic version (LEGACY/DEMO)
+### Current Architecture 
+- **mcp_tools_server.py**: v2.0 single server with modular tool system (PRODUCTION)
+- **src/mcp_tools_server.py**: v2.0 source version (same functionality)
+- All multi-server composition directories removed (coordinator, tools, reports)
 
 ### Modular Components
 - **src/mcp_tools_server.py**: Main server with dynamic tool registration
